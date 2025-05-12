@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../data/constants.dart';
 import '../data/services/location_logger.dart';
 import '../screens/interactive_map.dart';
 import '../utils/time_format.dart';
@@ -47,6 +48,7 @@ class LogTabState extends State<LogTab> {
             'lat': e['lat'],
             'lon': e['lon'],
             'distance': e['distance'],
+            'spm': e['spm'],
           };
         }).toList();
 
@@ -69,7 +71,7 @@ class LogTabState extends State<LogTab> {
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: const Text('Delete Logs'),
+            title: const Text('Delete Logs', style: TextStyles.dialogTitle),
             content: Text('Are you sure you want to delete $logCount log(s)?'),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),

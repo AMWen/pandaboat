@@ -9,5 +9,6 @@ class TextStyles {
   static TextStyle mediumText = TextStyle(fontSize: 18, fontWeight: FontWeight.w600);
   static TextStyle normalText = TextStyle(fontSize: 16);
   static TextStyle titleText = TextStyle(fontSize: 20, fontWeight: FontWeight.w500);
+  static TextStyle labelText = TextStyle(fontWeight: FontWeight.w500, fontSize: 16);
   static const TextStyle dialogTitle = TextStyle(fontSize: 18, fontWeight: FontWeight.w700);
 }

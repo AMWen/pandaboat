@@ -25,7 +25,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   int spm = 0;
   double? latitude;
   double? longitude;
-  String elapsedTime = '-';
+  String elapsedTime = '—';
 
   bool isRecording = false;
   DateTime? recordingStartTime;
@@ -131,6 +131,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
         'lat': position.latitude,
         'lon': position.longitude,
         'distance': totalDistance,
+        'spm': spm
       });
     }
 

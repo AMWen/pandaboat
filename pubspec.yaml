@@ -40,6 +40,7 @@ dependencies:
   flutter_map_heatmap: ^0.0.8
   latlong2: ^0.9.1
   intl: ^0.20.2
+  fl_chart: ^1.0.0
   flutter:
     sdk: flutter
 

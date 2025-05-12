@@ -88,6 +88,10 @@ class _MainScreenState extends State<MainScreen> {
         children: _tabs,
       ),
       bottomNavigationBar: BottomNavigationBar(
+        selectedItemColor: secondaryColor, // Active icon and label color
+        unselectedItemColor: dullColor,
+        selectedLabelStyle: TextStyles.labelText,
+        unselectedLabelStyle: TextStyles.labelText,
         backgroundColor: primaryColor,
         currentIndex: _currentIndex,
         onTap: _onItemTapped,
