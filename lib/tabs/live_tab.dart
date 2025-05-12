@@ -33,6 +33,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   final List<Map<String, dynamic>> recentData = [];
   final List<Map<String, dynamic>> gpsBuffer = [];
 
+  double totalDistance = 0.0;
   DateTime? lastJolt;
   Timer? spmTimer;
   Timer? uiUpdateTimer;
@@ -65,18 +66,24 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       }
     }
 
+    // Needed to request background location
+    if (permission == LocationPermission.whileInUse) {
+      permission = await Geolocator.requestPermission();
+    }
+
     late LocationSettings locationSettings;
 
     if (defaultTargetPlatform == TargetPlatform.android) {
       locationSettings = AndroidSettings(
         accuracy: LocationAccuracy.best,
         intervalDuration: const Duration(milliseconds: 200),
-        forceLocationManager: true,
-        foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationText: "Tracking continues in the background.",
-          notificationTitle: "Tracking in Background",
-          enableWakeLock: true,
-        ),
+        // Below does not work due to new Android settings
+        // forceLocationManager: true,
+        // foregroundNotificationConfig: const ForegroundNotificationConfig(
+        //   notificationText: "Tracking continues in the background.",
+        //   notificationTitle: "Tracking in Background",
+        //   enableWakeLock: true,
+        // ),
       );
     } else if (defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS) {
@@ -102,13 +109,30 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     if (isRecording && recordingStartTime != null) {
       final elapsedMs = now.difference(recordingStartTime!).inMilliseconds;
 
+      // Calculate the distance traveled from the previous position to the current position
+      double distance = 0.0;
+      if (gpsBuffer.isNotEmpty) {
+        final lastPosition = gpsBuffer.last;
+        distance = Geolocator.distanceBetween(
+          lastPosition['lat'],
+          lastPosition['lon'],
+          position.latitude,
+          position.longitude,
+        );
+      }
+
+      // Update total distance
+      totalDistance += distance;
+
       gpsBuffer.add({
         't': elapsedMs,
         'speed': speed,
         'lat': position.latitude,
         'lon': position.longitude,
+        'distance': totalDistance,
       });
     }
+
     recentData.add({'timestamp': now, 'speed': speed});
     recentData.removeWhere((entry) => now.difference(entry['timestamp']).inSeconds > 3);
 
@@ -165,6 +189,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     });
 
     if (isRecording) {
+      totalDistance = 0;
       recordingStartTime = DateTime.now();
       currentLogId = recordingStartTime!.toIso8601String();
       logger.startNewLog(currentLogId!);
@@ -214,6 +239,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
             metric("Smoothed Speed (3s)", "${smoothedSpeed.toStringAsFixed(1)} km/hr"),
             metric("Strokes per Minute", "$spm spm"),
             metric("Elapsed Time", elapsedTime),
+            metric("Total Distance", "${totalDistance.toStringAsFixed(0)} meters"),
             SizedBox(height: 50),
             FilledButton(
               onPressed: toggleRecording,
