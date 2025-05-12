@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:geolocator_android/geolocator_android.dart';
+import 'package:geolocator_apple/geolocator_apple.dart';
 import 'package:pandaboat/data/constants.dart';
 import 'package:rxdart/rxdart.dart';
 import '../data/services/location_logger.dart';
@@ -12,7 +15,7 @@ class LiveTab extends StatefulWidget {
   LiveTabState createState() => LiveTabState();
 }
 
-class LiveTabState extends State<LiveTab> {
+class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   final logger = LocationLogger();
 
   double currentSpeed = 0.0;
@@ -34,6 +37,9 @@ class LiveTabState extends State<LiveTab> {
   Timer? spmTimer;
   Timer? uiUpdateTimer;
   Timer? gpsFlushTimer;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -59,9 +65,34 @@ class LiveTabState extends State<LiveTab> {
       }
     }
 
+    late LocationSettings locationSettings;
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      locationSettings = AndroidSettings(
+        accuracy: LocationAccuracy.best,
+        intervalDuration: const Duration(milliseconds: 200),
+        forceLocationManager: true,
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationText: "Tracking continues in the background.",
+          notificationTitle: "Tracking in Background",
+          enableWakeLock: true,
+        ),
+      );
+    } else if (defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS) {
+      locationSettings = AppleSettings(
+        accuracy: LocationAccuracy.best,
+        activityType: ActivityType.fitness,
+        pauseLocationUpdatesAutomatically: false,
+        showBackgroundLocationIndicator: true,
+      );
+    } else {
+      locationSettings = LocationSettings(accuracy: LocationAccuracy.best);
+    }
+
     Geolocator.getPositionStream(
-      locationSettings: LocationSettings(accuracy: LocationAccuracy.high),
-    ).debounceTime(const Duration(milliseconds: 100)).listen(onPosition);
+      locationSettings: locationSettings,
+    ).debounceTime(const Duration(milliseconds: 200)).listen(onPosition);
   }
 
   void onPosition(Position position) {
@@ -169,6 +200,8 @@ class LiveTabState extends State<LiveTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // <-- this is required for AutomaticKeepAliveClientMixin
+
     return Scaffold(
       appBar: AppBar(title: const Text("Live Metrics")),
       body: Padding(
