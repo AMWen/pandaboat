@@ -1,4 +1,4 @@
-package com.example.pandaboat
+package com.pandateam.pandaBoat
 
 import io.flutter.embedding.android.FlutterActivity
 
