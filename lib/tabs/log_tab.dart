@@ -35,7 +35,7 @@ class LogTabState extends State<LogTab> {
 
   Future<void> openLog(String key) async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(key);
+    final raw = prefs.getString('log_$key');
     if (raw == null) return;
 
     final decoded = jsonDecode(raw) as List;
@@ -115,29 +115,26 @@ class LogTabState extends State<LogTab> {
                     logs.entries.map((entry) {
                       final logId = entry.key;
                       final entries = entry.value;
-                      return CheckboxListTile(
-                        title: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(formatLogId(logId)),
-                            Text(_formatDuration(entries.isNotEmpty ? entries.last['t'] : null)),
-                            Text(
-                              _formatDistance(entries.isNotEmpty ? entries.last['distance'] : null),
-                            ),
-                          ],
-                        ),
-                        subtitle: Text("${entries.length} points"),
-                        value: selectedLogs.contains(logId),
-                        onChanged: (bool? selected) {
-                          setState(() {
-                            if (selected == true) {
-                              selectedLogs.add(logId);
-                            } else {
-                              selectedLogs.remove(logId);
-                            }
-                          });
+                      return GestureDetector(
+                        onTap: () {
+                          print('Clicked');
+                          openLog(logId); // Open the log in InteractiveMap when tapped
                         },
-                        controlAffinity: ListTileControlAffinity.leading,
+                        child: ListTile(
+                          title: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(formatLogId(logId)),
+                              Text(_formatDuration(entries.isNotEmpty ? entries.last['t'] : null)),
+                              Text(
+                                _formatDistance(
+                                  entries.isNotEmpty ? entries.last['distance'] : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                          subtitle: Text("${entries.length} points"),
+                        ),
                       );
                     }).toList(), // Convert the mapped iterable back to a List of widgets
               ),
