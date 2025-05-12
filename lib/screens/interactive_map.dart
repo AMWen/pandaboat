@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:fl_chart/fl_chart.dart';
 import '../data/constants.dart';
 import '../utils/line_chart.dart';
 import '../utils/time_format.dart';
@@ -36,7 +35,7 @@ class InteractiveMap extends StatelessWidget {
       },
       {
         'name': 'SPM vs Distance',
-        'icon': Icon(Icons.directions_walk),
+        'icon': Icon(Icons.fast_forward),
         'tab': _buildLineChart(
           xData: getData('distance'),
           yData: getData('spm'),
@@ -60,7 +59,7 @@ class InteractiveMap extends StatelessWidget {
       },
       {
         'name': 'Speed vs Time',
-        'icon': Icon(Icons.timelapse),
+        'icon': Icon(Icons.timer),
         'tab': _buildLineChart(
           xData: gpsData.map((e) => (e['t'] as int).toDouble() / 1000).toList(),
           yData: gpsData.map((e) => e['speed'] as double).toList(),

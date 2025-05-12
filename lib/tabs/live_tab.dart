@@ -21,8 +21,9 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
 
   double currentSpeed = 0.0;
   double smoothedSpeed = 0.0;
+  List<DateTime> strokes = [];
   int strokeCount = 0;
-  int spm = 0;
+  double spm = 0;
   double? latitude;
   double? longitude;
   String elapsedTime = '—';
@@ -35,7 +36,6 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   final List<Map<String, dynamic>> gpsBuffer = [];
 
   double totalDistance = 0.0;
-  DateTime? lastJolt;
   Timer? spmTimer;
   Timer? uiUpdateTimer;
   Timer? gpsFlushTimer;
@@ -49,7 +49,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     _initLocation();
 
     uiUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) => updateUI());
-    spmTimer = Timer.periodic(const Duration(seconds: 5), (_) => calculateSPM());
+    spmTimer = Timer.periodic(const Duration(seconds: 1), (_) => calculateSPM());
     gpsFlushTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (isRecording && gpsBuffer.isNotEmpty) {
         flushGPSData();
@@ -131,19 +131,25 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
         'lat': position.latitude,
         'lon': position.longitude,
         'distance': totalDistance,
-        'spm': spm
+        'spm': spm,
       });
     }
 
     recentData.add({'timestamp': now, 'speed': speed});
     recentData.removeWhere((entry) => now.difference(entry['timestamp']).inSeconds > 3);
+    final lastJolt = strokes.isNotEmpty ? strokes.last : null;
 
-    if (recentData.length >= 2) {
-      final prev = recentData[recentData.length - 2];
-      double delta = speed - prev['speed'];
-      if (delta.abs() > 0.8 && now.difference(lastJolt ?? DateTime(2000)).inMilliseconds > 800) {
+    if (recentData.length >= 3) {
+      final thirdToLast = recentData[recentData.length - 3];
+      final secondToLast = recentData[recentData.length - 2];
+
+      double previousSpeedChange = secondToLast['speed'] - thirdToLast['speed'];
+      double currentSpeedChange = speed - secondToLast['speed'];
+      if (currentSpeedChange > previousSpeedChange &&
+          currentSpeedChange > 0.3 &&
+          now.difference(lastJolt ?? DateTime(2000)).inMilliseconds > 500) {
         strokeCount++;
-        lastJolt = now;
+        strokes.add(now);
       }
     }
   }
@@ -172,11 +178,18 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   }
 
   void calculateSPM() {
-    final now = DateTime.now();
-    final strokesLastMinute =
-        recentData.where((entry) => now.difference(entry['timestamp']).inSeconds <= 60).length;
+    Duration window = Duration(seconds: 5);
+    final now = strokes.isNotEmpty ? strokes.last : DateTime.now();
+    final cutoff = now.subtract(window);
+    strokes.retainWhere((s) => s.isAfter(cutoff));
+    if (strokes.length < 2) return;
+
+    final duration = strokes.last.difference(strokes.first).inMilliseconds / 1000.0;
+    if (duration == 0) return;
+
     setState(() {
-      spm = (strokeCount * 60) ~/ 60;
+      spm = ((strokes.length - 1) / duration * 60 * 2).round() / 2; // round to nearest 0.5
+      strokes = strokes;
     });
   }
 
@@ -232,6 +245,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
             metric("Instantaneous Speed", "${currentSpeed.toStringAsFixed(1)} km/hr"),
             metric("Smoothed Speed (3s)", "${smoothedSpeed.toStringAsFixed(1)} km/hr"),
             metric("Strokes per Minute", "$spm spm"),
+            metric("Stroke count", "$strokeCount"),
             metric("Elapsed Time", elapsedTime),
             metric("Total Distance", "${totalDistance.toStringAsFixed(0)} meters"),
             SizedBox(height: 50),

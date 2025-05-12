@@ -119,7 +119,6 @@ class LogTabState extends State<LogTab> {
                       final entries = entry.value;
                       return GestureDetector(
                         onTap: () {
-                          print('Clicked');
                           openLog(logId); // Open the log in InteractiveMap when tapped
                         },
                         child: ListTile(
