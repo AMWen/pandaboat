@@ -54,7 +54,7 @@ flutter build ios --release
 ### Project Structure
 
 ```bash
-lab/
+lib/
 ├── data/
 │   └── services/
 │   │   ├── gps_service.dart
