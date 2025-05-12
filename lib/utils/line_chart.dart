@@ -60,6 +60,12 @@ Widget buildSimpleLineChart({
   int? intervalY2 = yData2 != null ? calculateRoundedInterval(yData2, 10, yRules) : null;
 
   return SfCartesianChart(
+    zoomPanBehavior: ZoomPanBehavior(
+      enablePinching: true,
+      enablePanning: true,
+      zoomMode: ZoomMode.xy,
+      maximumZoomLevel: 0.05,
+    ),
     series: [
       LineSeries<ChartData, double>(
         animationDuration: 0,
@@ -129,7 +135,10 @@ Widget buildSimpleLineChart({
         return Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(color: secondaryColor, borderRadius: BorderRadius.circular(4)),
-          child: Text('(${(data.x).toStringAsFixed(1)}, ${(data.y).toStringAsFixed(1)})', style: TextStyle(color: color)),
+          child: Text(
+            '(${(data.x).toStringAsFixed(1)}, ${(data.y).toStringAsFixed(1)})',
+            style: TextStyle(color: color),
+          ),
         );
       },
     ),

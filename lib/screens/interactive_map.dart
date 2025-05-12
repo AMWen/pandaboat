@@ -97,11 +97,7 @@ class InteractiveMap extends StatelessWidget {
     final polylinePoints = gpsData.map((point) => LatLng(point['lat'], point['lon'])).toList();
 
     return FlutterMap(
-      options: MapOptions(
-        initialCenter: polylinePoints.first,
-        initialZoom: 14.0,
-        onTap: (_, __) => Navigator.of(context).maybePop(),
-      ),
+      options: MapOptions(initialCenter: polylinePoints.first, initialZoom: 18.0),
       children: [
         TileLayer(urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
 
@@ -113,15 +109,16 @@ class InteractiveMap extends StatelessWidget {
 
         MarkerLayer(
           markers:
-              gpsData.map((point) {
-                final lat = point['lat'];
-                final lon = point['lon'];
+              gpsData.asMap().entries.map((entry) {
+                final index = entry.key;
+                final point = entry.value;
                 final speed = point['speed'];
                 final distance = point['distance'];
                 final elapsed = Duration(milliseconds: point['t']);
+                final latLng = LatLng(point['lat'], point['lon']);
 
                 return Marker(
-                  point: LatLng(lat, lon),
+                  point: latLng,
                   width: 20,
                   height: 20,
                   child: GestureDetector(
@@ -139,13 +136,18 @@ class InteractiveMap extends StatelessWidget {
                             ),
                       );
                     },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _getColorForSpeed(speed, minSpeed, maxSpeed),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.black26),
-                      ),
-                    ),
+                    child:
+                        index == 0
+                            ? Icon(Icons.home, color: primaryColor, size: 36)
+                            : (index == gpsData.length - 1
+                                ? Icon(Icons.sports_score, color: Colors.black, size: 36)
+                                : Container(
+                                  decoration: BoxDecoration(
+                                    color: _getColorForSpeed(speed, minSpeed, maxSpeed),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.black26),
+                                  ),
+                                )),
                   ),
                 );
               }).toList(),
