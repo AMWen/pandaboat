@@ -7,6 +7,7 @@ import 'package:geolocator_apple/geolocator_apple.dart';
 import 'package:pandaboat/data/constants.dart';
 import 'package:rxdart/rxdart.dart';
 import '../data/services/location_logger.dart';
+import '../utils/time_format.dart';
 
 class LiveTab extends StatefulWidget {
   const LiveTab({super.key});
@@ -205,15 +206,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     if (!isRecording || recordingStartTime == null) return '-';
 
     final elapsed = DateTime.now().difference(recordingStartTime!);
-    final hours = elapsed.inHours;
-    final minutes = elapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
-
-    if (hours > 0) {
-      return "$hours:$minutes:$seconds";
-    } else {
-      return "$minutes:$seconds";
-    }
+    return formatTime(elapsed);
   }
 
   @override

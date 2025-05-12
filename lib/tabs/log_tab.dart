@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/services/location_logger.dart';
 import '../screens/interactive_map.dart';
-import '../utils/date_format.dart';
+import '../utils/time_format.dart';
 
 class LogTab extends StatefulWidget {
   const LogTab({super.key});
@@ -41,7 +41,13 @@ class LogTabState extends State<LogTab> {
     final decoded = jsonDecode(raw) as List;
     final gpsData =
         decoded.map((e) {
-          return {'t': e['t'], 'speed': e['speed'], 'lat': e['lat'], 'lon': e['lon']};
+          return {
+            't': e['t'],
+            'speed': e['speed'],
+            'lat': e['lat'],
+            'lon': e['lon'],
+            'distance': e['distance'],
+          };
         }).toList();
 
     if (!mounted) return;
@@ -73,6 +79,17 @@ class LogTabState extends State<LogTab> {
     );
   }
 
+  String _formatDuration(int? elapsedTime) {
+    if (elapsedTime == null) return '';
+    final elapsed = Duration(milliseconds: elapsedTime);
+    return formatTime(elapsed);
+  }
+
+  String _formatDistance(double? distance) {
+    if (distance == null) return '';
+    return "${distance.toStringAsFixed(0)} m";
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -99,7 +116,16 @@ class LogTabState extends State<LogTab> {
                       final logId = entry.key;
                       final entries = entry.value;
                       return CheckboxListTile(
-                        title: Text(formatLogId(logId)),
+                        title: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(formatLogId(logId)),
+                            Text(_formatDuration(entries.isNotEmpty ? entries.last['t'] : null)),
+                            Text(
+                              _formatDistance(entries.isNotEmpty ? entries.last['distance'] : null),
+                            ),
+                          ],
+                        ),
                         subtitle: Text("${entries.length} points"),
                         value: selectedLogs.contains(logId),
                         onChanged: (bool? selected) {
