@@ -1,7 +1,7 @@
 import 'dart:math';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:pandaboat/data/constants.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 int? calculateRoundedInterval(List<double> data, int intervals, List<Map<dynamic, int>> rules) {
   if (data.length < 5) return null;
@@ -24,7 +24,9 @@ int? calculateRoundedInterval(List<double> data, int intervals, List<Map<dynamic
 Widget buildSimpleLineChart({
   required List<double> xData,
   required List<double> yData,
-  bool isDarkMode = true,
+  String xLabel = '',
+  String yLabel = '',
+  String yLabel2 = '',
   List<double>? yData2,
   Color color = Colors.blueAccent,
   Color color2 = Colors.lightGreen,
@@ -38,18 +40,9 @@ Widget buildSimpleLineChart({
   double minY2 = 0;
   double maxY2 = yData2?.reduce(max) ?? 0;
 
-  final spots = List.generate(xData.length, (i) => FlSpot(xData[i], yData[i]));
-
-  // Normalize Y2 to Y-range
-  double y2Scale(double y2) {
-    if (maxY2 == minY2) return minY; // or (minY + maxY) / 2 if you want to center it
-    return minY + ((y2 - minY2) / (maxY2 - minY2)) * (maxY - minY);
-  }
-
+  final spots = List.generate(xData.length, (i) => ChartData(xData[i], yData[i]));
   final spots2 =
-      yData2 != null
-          ? List.generate(xData.length, (i) => FlSpot(xData[i], y2Scale(yData2[i])))
-          : null;
+      yData2 != null ? List.generate(xData.length, (i) => ChartData(xData[i], yData2[i])) : null;
 
   List<Map<dynamic, int>> xRules = [
     {7.5: 5},
@@ -66,75 +59,86 @@ Widget buildSimpleLineChart({
   int? intervalY = calculateRoundedInterval(yData, 10, yRules);
   int? intervalY2 = yData2 != null ? calculateRoundedInterval(yData2, 10, yRules) : null;
 
-  return LineChart(
-    LineChartData(
-      lineTouchData: LineTouchData(enabled: true),
-      gridData: FlGridData(show: false),
-      titlesData: FlTitlesData(
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 32,
-            interval: intervalX?.toDouble(),
-            getTitlesWidget:
-                (value, _) => Text(value.toStringAsFixed(0), style: const TextStyle(fontSize: 10)),
-          ),
-        ),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 40,
-            interval: intervalY?.toDouble(),
-            getTitlesWidget:
-                (value, _) => Text(value.toStringAsFixed(0), style: const TextStyle(fontSize: 10)),
-          ),
-        ),
-        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles:
-            intervalY2 != null
-                ? AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 40,
-                    interval: maxY2 == 0 ? null : intervalY2.toDouble() * maxY / maxY2,
-                    getTitlesWidget:
-                        (value, _) => Text(
-                          maxY == 0
-                              ? value.toStringAsFixed(0)
-                              : (value * maxY2 / maxY).toStringAsFixed(0),
-                          style: const TextStyle(fontSize: 10),
-                        ),
-                  ),
-                )
-                : AxisTitles(sideTitles: SideTitles(showTitles: false)),
-      ),
-      borderData: FlBorderData(
-        show: true,
-        border: Border.all(color: isDarkMode ? secondaryColor : Colors.black, width: 1),
-      ),
-      minX: minX,
-      maxX: maxX,
-      minY: minY,
-      maxY: maxY,
-      lineBarsData: [
-        LineChartBarData(
-          spots: spots,
-          isCurved: true,
+  return SfCartesianChart(
+    series: [
+      LineSeries<ChartData, double>(
+        animationDuration: 0,
+        dataSource: spots,
+        xValueMapper: (ChartData data, _) => data.x,
+        yValueMapper: (ChartData data, _) => data.y,
+        color: color,
+        width: 2,
+        markerSettings: MarkerSettings(
+          isVisible: true,
+          width: 2.5,
+          height: 2.5,
           color: color,
-          barWidth: 2,
-          belowBarData: BarAreaData(show: false),
-          dotData: FlDotData(show: false),
+          shape: DataMarkerType.circle,
         ),
-        if (spots2 != null)
-          LineChartBarData(
-            spots: spots2,
-            isCurved: true,
+      ),
+      if (spots2 != null)
+        LineSeries<ChartData, double>(
+          animationDuration: 0,
+          dataSource: spots2,
+          xValueMapper: (ChartData data, _) => data.x,
+          yValueMapper: (ChartData data, _) => data.y,
+          color: color2,
+          width: 2,
+          markerSettings: MarkerSettings(
+            isVisible: true,
+            width: 2.5,
+            height: 2.5,
             color: color2,
-            barWidth: 2,
-            belowBarData: BarAreaData(show: false),
-            dotData: FlDotData(show: false),
+            shape: DataMarkerType.circle,
           ),
-      ],
+        ),
+    ],
+    primaryXAxis: NumericAxis(
+      minimum: minX,
+      maximum: maxX,
+      interval: intervalX?.toDouble(),
+      labelFormat: '{value}',
+      title: AxisTitle(text: xLabel),
+    ),
+    primaryYAxis: NumericAxis(
+      minimum: minY,
+      maximum: maxY,
+      interval: intervalY?.toDouble(),
+      labelFormat: '{value}',
+      title: AxisTitle(text: yLabel, textStyle: TextStyle(color: color)),
+    ),
+    axes:
+        yData2 != null
+            ? [
+              NumericAxis(
+                minimum: minY2,
+                maximum: maxY2,
+                interval: intervalY2?.toDouble(),
+                opposedPosition: true,
+                labelFormat: '{value}',
+                title: AxisTitle(text: yLabel2, textStyle: TextStyle(color: color2)),
+              ),
+            ]
+            : const <ChartAxis>[],
+    tooltipBehavior: TooltipBehavior(
+      animationDuration: 0,
+      duration: 5000,
+      enable: true,
+      format: 'point.x, point.y',
+      builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
+        return Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: secondaryColor, borderRadius: BorderRadius.circular(4)),
+          child: Text('(${(data.x).toStringAsFixed(1)}, ${(data.y).toStringAsFixed(1)})', style: TextStyle(color: color)),
+        );
+      },
     ),
   );
+}
+
+class ChartData {
+  final double x;
+  final double y;
+
+  ChartData(this.x, this.y);
 }
