@@ -2,17 +2,24 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocationLogger {
-  Map<String, List<Map<String, dynamic>>> _logs = {};
+  final Map<String, List<Map<String, dynamic>>> _logs = {};
 
   void startNewLog(String logId) {
     _logs[logId] = [];
   }
 
-  void appendToLog(String logId, Map<String, dynamic> data) {
+  void appendToLog(String logId, dynamic data) {
     if (!_logs.containsKey(logId)) {
-      _logs[logId] = [];
+      startNewLog(logId);
     }
-    _logs[logId]!.add(data);
+
+    if (data is Map<String, dynamic>) {
+      _logs[logId]!.add(data);
+    } else if (data is List<Map<String, dynamic>>) {
+      _logs[logId]!.addAll(data);
+    } else {
+      throw ArgumentError('Data must be a Map or List of Maps');
+    }
   }
 
   Future<void> saveLog(String logId) async {
@@ -36,5 +43,20 @@ class LocationLogger {
       }
     }
     return logs;
+  }
+
+  Future<void> clearLog(String logId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('log_$logId');
+    _logs.remove(logId);
+  }
+
+  Future<void> clearAllLogs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keysToRemove = prefs.getKeys().where((k) => k.startsWith('log_')).toList();
+    for (final key in keysToRemove) {
+      await prefs.remove(key);
+    }
+    _logs.clear();
   }
 }

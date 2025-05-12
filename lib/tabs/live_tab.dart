@@ -21,6 +21,7 @@ class LiveTabState extends State<LiveTab> {
   int spm = 0;
   double? latitude;
   double? longitude;
+  String elapsedTime = '-';
 
   bool isRecording = false;
   DateTime? recordingStartTime;
@@ -32,6 +33,7 @@ class LiveTabState extends State<LiveTab> {
   DateTime? lastJolt;
   Timer? spmTimer;
   Timer? uiUpdateTimer;
+  Timer? gpsFlushTimer;
 
   @override
   void initState() {
@@ -40,13 +42,19 @@ class LiveTabState extends State<LiveTab> {
 
     uiUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) => updateUI());
     spmTimer = Timer.periodic(const Duration(seconds: 5), (_) => calculateSPM());
+    gpsFlushTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (isRecording && gpsBuffer.isNotEmpty) {
+        flushGPSData();
+      }
+    });
   }
 
   Future<void> _initLocation() async {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
         return;
       }
     }
@@ -62,21 +70,14 @@ class LiveTabState extends State<LiveTab> {
 
     if (isRecording && recordingStartTime != null) {
       final elapsedMs = now.difference(recordingStartTime!).inMilliseconds;
-      logger.appendToLog(currentLogId!, {
+
+      gpsBuffer.add({
         't': elapsedMs,
+        'speed': speed,
         'lat': position.latitude,
         'lon': position.longitude,
-        'speed': speed,
       });
     }
-
-    gpsBuffer.add({
-      'timestamp': now,
-      'speed': speed,
-      'lat': position.latitude,
-      'lon': position.longitude,
-    });
-
     recentData.add({'timestamp': now, 'speed': speed});
     recentData.removeWhere((entry) => now.difference(entry['timestamp']).inSeconds > 3);
 
@@ -91,11 +92,17 @@ class LiveTabState extends State<LiveTab> {
   }
 
   void updateUI() {
+    setState(() {
+      elapsedTime = getElapsedTime();
+    });
+
     if (gpsBuffer.isEmpty) return;
 
     final latest = gpsBuffer.last;
     final smooth =
-        recentData.isEmpty ? 0.0 : recentData.map((e) => e['speed']).reduce((a, b) => a + b) / recentData.length;
+        recentData.isEmpty
+            ? 0.0
+            : recentData.map((e) => e['speed']).reduce((a, b) => a + b) / recentData.length;
 
     setState(() {
       currentSpeed = latest['speed'];
@@ -109,10 +116,16 @@ class LiveTabState extends State<LiveTab> {
 
   void calculateSPM() {
     final now = DateTime.now();
-    final strokesLastMinute = recentData.where((entry) => now.difference(entry['timestamp']).inSeconds <= 60).length;
+    final strokesLastMinute =
+        recentData.where((entry) => now.difference(entry['timestamp']).inSeconds <= 60).length;
     setState(() {
       spm = (strokeCount * 60) ~/ 60;
     });
+  }
+
+  void flushGPSData() {
+    logger.appendToLog(currentLogId!, gpsBuffer);
+    gpsBuffer.clear();
   }
 
   void toggleRecording() {
@@ -125,8 +138,25 @@ class LiveTabState extends State<LiveTab> {
       currentLogId = recordingStartTime!.toIso8601String();
       logger.startNewLog(currentLogId!);
     } else {
+      flushGPSData();
+      logger.saveLog(currentLogId!);
       recordingStartTime = null;
       currentLogId = null;
+    }
+  }
+
+  String getElapsedTime() {
+    if (!isRecording || recordingStartTime == null) return '-';
+
+    final elapsed = DateTime.now().difference(recordingStartTime!);
+    final hours = elapsed.inHours;
+    final minutes = elapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
+
+    if (hours > 0) {
+      return "$hours:$minutes:$seconds";
+    } else {
+      return "$minutes:$seconds";
     }
   }
 
@@ -150,13 +180,17 @@ class LiveTabState extends State<LiveTab> {
             metric("Instantaneous Speed", "${currentSpeed.toStringAsFixed(1)} km/hr"),
             metric("Smoothed Speed (3s)", "${smoothedSpeed.toStringAsFixed(1)} km/hr"),
             metric("Strokes per Minute", "$spm spm"),
+            metric("Elapsed Time", elapsedTime),
             SizedBox(height: 50),
             FilledButton(
               onPressed: toggleRecording,
               style: FilledButton.styleFrom(
                 backgroundColor: isRecording ? Colors.red : primaryColor,
               ),
-              child: Text(isRecording ? 'Stop Recording' : 'Start Recording', style: TextStyle(color: secondaryColor)),
+              child: Text(
+                isRecording ? 'Stop Recording' : 'Start Recording',
+                style: TextStyle(color: secondaryColor),
+              ),
             ),
             const SizedBox(height: 16),
           ],
@@ -170,10 +204,7 @@ class LiveTabState extends State<LiveTab> {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-          Text(value),
-        ],
+        children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w500)), Text(value)],
       ),
     );
   }

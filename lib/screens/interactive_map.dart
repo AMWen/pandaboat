@@ -9,8 +9,6 @@ class InteractiveMap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final startTime = gpsData.first['timestamp'] as DateTime;
-
     return Scaffold(
       appBar: AppBar(title: const Text("Interactive GPS Map")),
       body: FlutterMap(
@@ -27,8 +25,7 @@ class InteractiveMap extends StatelessWidget {
                   final lat = point['lat'];
                   final lon = point['lon'];
                   final speed = point['speed'];
-                  final timestamp = point['timestamp'] as DateTime;
-                  final msSinceStart = timestamp.difference(startTime).inMilliseconds;
+                  final msSinceStart = point['t'];
 
                   return Marker(
                     point: LatLng(lat, lon),
