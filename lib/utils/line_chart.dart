@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:pandaboat/data/constants.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-int? calculateRoundedInterval(List<double> data, double rawInterval, List<Map<dynamic, int>> rules) {
+int? calculateRoundedInterval(
+  List<double> data,
+  double rawInterval,
+  List<Map<dynamic, int>> rules,
+) {
   if (data.length < 5) return null;
 
   for (var rule in rules) {
@@ -20,130 +24,208 @@ int? calculateRoundedInterval(List<double> data, double rawInterval, List<Map<dy
   return rawInterval.round();
 }
 
-Widget buildSimpleLineChart({
-  required List<double> xData,
-  required List<double> yData,
-  String xLabel = '',
-  String yLabel = '',
-  String yLabel2 = '',
-  List<double>? yData2,
-  Color color = Colors.blueAccent,
-  Color color2 = Colors.lightGreen,
-}) {
-  double minX = 0;
-  double maxX = xData.reduce(max);
+class InteractiveLineChart extends StatefulWidget {
+  final List<double> xData;
+  final List<double> yData;
+  final List<double>? yData2;
+  final String xLabel;
+  final String yLabel;
+  final String yLabel2;
+  final Color color;
+  final Color color2;
 
-  double minY = 0;
-  double maxY = yData.reduce(max);
+  const InteractiveLineChart({
+    super.key,
+    required this.xData,
+    required this.yData,
+    this.yData2,
+    this.xLabel = '',
+    this.yLabel = '',
+    this.yLabel2 = '',
+    this.color = Colors.blueAccent,
+    this.color2 = Colors.lightGreen,
+  });
 
-  double minY2 = 0;
-  double maxY2 = yData2?.reduce(max) ?? 0;
+  @override
+  State<InteractiveLineChart> createState() => _InteractiveLineChartState();
+}
 
-  final spots = List.generate(xData.length, (i) => ChartData(xData[i], yData[i]));
-  final spots2 =
-      yData2 != null ? List.generate(xData.length, (i) => ChartData(xData[i], yData2[i])) : null;
+class _InteractiveLineChartState extends State<InteractiveLineChart> {
+  bool _showPrimarySeries = true;
+  bool _showSecondarySeries = true;
 
-  List<Map<dynamic, int>> xRules = [
-    {7.5: 5},
-    {100: 10},
-    {500: 100},
-    {'else': 500},
-  ];
-  int? intervalX = calculateRoundedInterval(xData, maxX/5, xRules);
+  @override
+  Widget build(BuildContext context) {
+    final double minX = 0;
+    final double maxX = widget.xData.reduce(max);
 
-  List<Map<dynamic, int>> yRules = [
-    {5: 1},
-    {'else': 5},
-  ];
-  int? intervalY = calculateRoundedInterval(yData, maxY/10, yRules);
-  int? intervalY2 = yData2 != null ? calculateRoundedInterval(yData2, maxY2/10, yRules) : null;
+    final double minY = 0;
+    final double maxY = widget.yData.reduce(max);
 
-  return SfCartesianChart(
-    zoomPanBehavior: ZoomPanBehavior(
-      enablePinching: true,
-      enablePanning: true,
-      zoomMode: ZoomMode.xy,
-      maximumZoomLevel: 0.05,
-    ),
-    series: [
-      LineSeries<ChartData, double>(
-        animationDuration: 0,
-        dataSource: spots,
-        xValueMapper: (ChartData data, _) => data.x,
-        yValueMapper: (ChartData data, _) => data.y,
-        color: color,
-        width: 2,
-        markerSettings: MarkerSettings(
-          isVisible: true,
-          width: 2.5,
-          height: 2.5,
-          color: color,
-          shape: DataMarkerType.circle,
-        ),
-      ),
-      if (spots2 != null)
-        LineSeries<ChartData, double>(
-          yAxisName: 'secondaryYAxis',
-          animationDuration: 0,
-          dataSource: spots2,
-          xValueMapper: (ChartData data, _) => data.x,
-          yValueMapper: (ChartData data, _) => data.y,
-          color: color2,
-          width: 2,
-          markerSettings: MarkerSettings(
-            isVisible: true,
-            width: 2.5,
-            height: 2.5,
-            color: color2,
-            shape: DataMarkerType.circle,
-          ),
-        ),
-    ],
-    primaryXAxis: NumericAxis(
-      minimum: minX,
-      maximum: maxX,
-      interval: intervalX?.toDouble(),
-      labelFormat: '{value}',
-      title: AxisTitle(text: xLabel),
-    ),
-    primaryYAxis: NumericAxis(
-      minimum: minY,
-      maximum: maxY,
-      interval: intervalY?.toDouble(),
-      labelFormat: '{value}',
-      title: AxisTitle(text: yLabel, textStyle: TextStyle(color: color)),
-    ),
-    axes:
-        yData2 != null
-            ? [
-              NumericAxis(
-                name: 'secondaryYAxis',
-                minimum: minY2,
-                maximum: maxY2,
-                interval: intervalY2?.toDouble(),
-                opposedPosition: true,
-                labelFormat: '{value}',
-                title: AxisTitle(text: yLabel2, textStyle: TextStyle(color: color2)),
+    final double minY2 = 0;
+    final double maxY2 = (widget.yData2?.reduce(max) ?? 0) * 1.1;
+
+    final spots = List.generate(
+      widget.xData.length,
+      (i) => ChartData(widget.xData[i], widget.yData[i]),
+    );
+
+    final spots2 =
+        widget.yData2 != null
+            ? List.generate(
+              widget.xData.length,
+              (i) => ChartData(widget.xData[i], widget.yData2![i]),
+            )
+            : null;
+
+    final int? intervalX = calculateRoundedInterval(widget.xData, maxX / 5, [
+      {7.5: 5},
+      {100: 10},
+      {500: 100},
+      {'else': 500},
+    ]);
+
+    final int? intervalY = calculateRoundedInterval(widget.yData, maxY / 10, [
+      {5: 1},
+      {'else': 5},
+    ]);
+
+    final int? intervalY2 =
+        widget.yData2 != null
+            ? calculateRoundedInterval(widget.yData2!, maxY2 / 10, [
+              {5: 1},
+              {'else': 5},
+            ])
+            : null;
+
+    return Column(
+      children: [
+        if (spots2 != null)
+          Row(
+            children: [
+              Checkbox(
+                value: _showPrimarySeries,
+                onChanged: (val) {
+                  setState(() => _showPrimarySeries = val ?? true);
+                },
               ),
-            ]
-            : const <ChartAxis>[],
-    tooltipBehavior: TooltipBehavior(
-      animationDuration: 0,
-      duration: 5000,
-      enable: true,
-      format: 'point.x, point.y',
-      builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
-        return Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: secondaryColor, borderRadius: BorderRadius.circular(4)),
-          child: Text(
-            '(${(data.x).toStringAsFixed(1)}, ${(data.y).toStringAsFixed(1)})',
-            style: TextStyle(color: color),
+              const Text('Primary Series'),
+              const SizedBox(width: 20),
+              Checkbox(
+                value: _showSecondarySeries,
+                onChanged: (val) {
+                  setState(() => _showSecondarySeries = val ?? true);
+                },
+              ),
+              const Text('Secondary Series'),
+            ],
           ),
-        );
-      },
-    ),
-  );
+        Expanded(
+          child: SfCartesianChart(
+            zoomPanBehavior: ZoomPanBehavior(
+              enablePinching: true,
+              enablePanning: true,
+              zoomMode: ZoomMode.xy,
+              maximumZoomLevel: 0.05,
+            ),
+            series: [
+              if (_showPrimarySeries)
+                LineSeries<ChartData, double>(
+                  initialIsVisible: _showPrimarySeries,
+                  animationDuration: 0,
+                  dataSource: spots,
+                  xValueMapper: (ChartData data, _) => data.x,
+                  yValueMapper: (ChartData data, _) => data.y,
+                  color: widget.color,
+                  width: 2,
+                  markerSettings: MarkerSettings(
+                    isVisible: true,
+                    width: 2.2,
+                    height: 2.2,
+                    color: widget.color,
+                    shape: DataMarkerType.circle,
+                  ),
+                ),
+              if (_showSecondarySeries && spots2 != null)
+                LineSeries<ChartData, double>(
+                  initialIsVisible: _showSecondarySeries,
+                  yAxisName: 'secondaryYAxis',
+                  animationDuration: 0,
+                  dataSource: spots2,
+                  xValueMapper: (ChartData data, _) => data.x,
+                  yValueMapper: (ChartData data, _) => data.y,
+                  color: widget.color2,
+                  width: 2,
+                  markerSettings: MarkerSettings(
+                    isVisible: true,
+                    width: 2.2,
+                    height: 2.2,
+                    color: widget.color2,
+                    shape: DataMarkerType.circle,
+                  ),
+                ),
+            ],
+            primaryXAxis: NumericAxis(
+              minimum: minX,
+              maximum: maxX,
+              interval: intervalX?.toDouble(),
+              labelFormat: '{value}',
+              title: AxisTitle(text: widget.xLabel),
+            ),
+            primaryYAxis: NumericAxis(
+              minimum: minY,
+              maximum: maxY,
+              interval: intervalY?.toDouble(),
+              labelFormat: '{value}',
+              title: AxisTitle(text: widget.yLabel, textStyle: TextStyle(color: widget.color)),
+            ),
+            axes:
+                widget.yData2 != null
+                    ? [
+                      NumericAxis(
+                        name: 'secondaryYAxis',
+                        minimum: minY2,
+                        maximum: maxY2,
+                        interval: intervalY2?.toDouble(),
+                        opposedPosition: true,
+                        labelFormat: '{value}',
+                        title: AxisTitle(
+                          text: widget.yLabel2,
+                          textStyle: TextStyle(color: widget.color2),
+                        ),
+                      ),
+                    ]
+                    : const <ChartAxis>[],
+            tooltipBehavior: TooltipBehavior(
+              animationDuration: 0,
+              duration: 5000,
+              enable: true,
+              format: 'point.x, point.y',
+              builder: (
+                dynamic data,
+                dynamic point,
+                dynamic series,
+                int pointIndex,
+                int seriesIndex,
+              ) {
+                return Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: secondaryColor,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    '(${(data.x).toStringAsFixed(1)}, ${(data.y).toStringAsFixed(1)})',
+                    style: TextStyle(color: widget.color),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class ChartData {

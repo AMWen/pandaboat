@@ -128,6 +128,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       gpsBuffer.add({
         't': elapsedMs,
         'speed': speed,
+        'smoothed': smoothedSpeed,
         'lat': position.latitude,
         'lon': position.longitude,
         'distance': totalDistance,

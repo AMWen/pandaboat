@@ -12,7 +12,7 @@ class InteractiveMap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final speeds = gpsData.map((e) => e['speed'] as double).toList();
+    final speeds = getData('speed');
     final minSpeed = speeds.reduce((a, b) => a < b ? a : b);
     final maxSpeed = speeds.reduce((a, b) => a > b ? a : b);
     final List<Map<String, dynamic>> tabsList = [
@@ -22,32 +22,11 @@ class InteractiveMap extends StatelessWidget {
         'tab': _buildMap(context, minSpeed, maxSpeed),
       },
       {
-        'name': 'Speed vs Distance',
-        'icon': Icon(Icons.show_chart),
-        'tab': buildSimpleLineChart(
+        'name': 'Speed and SPM vs Distance',
+        'icon': Icon(Icons.multiline_chart),
+        'tab': InteractiveLineChart(
           xData: getData('distance'),
           yData: getData('speed'),
-          xLabel: "Distance (m)",
-          yLabel: "Speed (km/hr)",
-        ),
-      },
-      {
-        'name': 'SPM vs Distance',
-        'icon': Icon(Icons.fast_forward),
-        'tab': buildSimpleLineChart(
-          xData: getData('distance'),
-          yData: getData('spm'),
-          xLabel: "Distance (m)",
-          yLabel: "SPM",
-          color: Colors.lightGreen,
-        ),
-      },
-      {
-        'name': 'Speed and SPM vs Distance',
-        'icon': Icon(Icons.group),
-        'tab': buildSimpleLineChart(
-          xData: gpsData.map((e) => e['distance'] as double).toList(),
-          yData: gpsData.map((e) => e['speed'] as double).toList(),
           yData2: gpsData.map((e) => e['spm'] as double? ?? 0).toList(),
           xLabel: "Distance (m)",
           yLabel: "Speed (km/hr)",
@@ -55,13 +34,39 @@ class InteractiveMap extends StatelessWidget {
         ),
       },
       {
-        'name': 'Speed vs Time',
+        'name': 'Smoothed Speed and SPM vs Distance',
+        'icon': Row(children: [Icon(Icons.multiline_chart), Icon(Icons.iron)]),
+        'tab': InteractiveLineChart(
+          xData: getData('distance'),
+          yData: getData('smoothed'),
+          yData2: getData('spm'),
+          xLabel: "Distance (m)",
+          yLabel: "Speed (km/hr)",
+          yLabel2: "SPM",
+        ),
+      },
+      {
+        'name': 'Speed and SPM vs Time',
         'icon': Icon(Icons.timer),
-        'tab': buildSimpleLineChart(
+        'tab': InteractiveLineChart(
           xData: gpsData.map((e) => (e['t'] as int).toDouble() / 1000).toList(),
-          yData: gpsData.map((e) => e['speed'] as double).toList(),
+          yData: getData('speed'),
+          yData2: getData('spm'),
           xLabel: "Time (s)",
           yLabel: "Speed (km/hr)",
+          yLabel2: "SPM",
+        ),
+      },
+      {
+        'name': 'Smoothed Speed and SPM vs Time',
+        'icon': Row(children: [Icon(Icons.timer), Icon(Icons.iron)]),
+        'tab': InteractiveLineChart(
+          xData: gpsData.map((e) => (e['t'] as int).toDouble() / 1000).toList(),
+          yData: getData('smoothed'),
+          yData2: getData('spm'),
+          xLabel: "Time (s)",
+          yLabel: "Speed (km/hr)",
+          yLabel2: "SPM",
         ),
       },
     ];
@@ -72,10 +77,12 @@ class InteractiveMap extends StatelessWidget {
       length: tabsList.length,
       child: Scaffold(
         appBar: AppBar(
+          toolbarHeight: kToolbarHeight * 0.75,
           title: const Text("Log Analysis"),
           bottom: TabBar(
-            labelColor: secondaryColor, // Icon color when selected
-            unselectedLabelColor: dullColor, // Icon color when not selected
+            dividerHeight: 0,
+            labelColor: secondaryColor,
+            unselectedLabelColor: dullColor,
             tabs:
                 tabsList
                     .map(
@@ -103,7 +110,7 @@ class InteractiveMap extends StatelessWidget {
 
         PolylineLayer(
           polylines: [
-            Polyline(points: polylinePoints, strokeWidth: 4.0, color: Colors.blue.withOpacity(0.6)),
+            Polyline(points: polylinePoints, strokeWidth: 4.0, color: Colors.blue.withAlpha(150)),
           ],
         ),
 

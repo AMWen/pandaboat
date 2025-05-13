@@ -45,6 +45,7 @@ class LogTabState extends State<LogTab> {
           return {
             't': e['t'],
             'speed': e['speed'],
+            'smoothed': e['smoothed'],
             'lat': e['lat'],
             'lon': e['lon'],
             'distance': e['distance'],
