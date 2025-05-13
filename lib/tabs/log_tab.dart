@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:csv/csv.dart';
 import '../data/constants.dart';
 import '../data/services/location_logger.dart';
 import '../screens/interactive_map.dart';
@@ -23,6 +26,64 @@ class LogTabState extends State<LogTab> {
   void initState() {
     super.initState();
     loadLogs();
+  }
+
+  Future<void> downloadSelectedLogs() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<List<String>> csvData = [];
+
+    for (final logId in selectedLogs) {
+      final raw = prefs.getString('log_$logId');
+      if (raw == null) continue;
+
+      final decoded = jsonDecode(raw) as List<dynamic>;
+
+      // Add headers
+      csvData.add(["logId", "t", "speed", "smoothed", "lat", "lon", "distance", "spm"]);
+
+      // Add data rows
+      for (final entry in decoded) {
+        csvData.add([
+          logId,
+          "${entry['t']}",
+          "${entry['speed']}",
+          "${entry['smoothed']}",
+          "${entry['lat']}",
+          "${entry['lon']}",
+          "${entry['distance']}",
+          "${entry['spm']}",
+        ]);
+      }
+
+      // Blank line between logs
+      csvData.add([]);
+    }
+
+    if (mounted && csvData.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No valid GPS data found to export.')));
+      return;
+    }
+
+    final csvString = const ListToCsvConverter().convert(csvData);
+    final fileName = 'selected_logs_${DateTime.now().millisecondsSinceEpoch}.csv';
+
+    final result = await FilePicker.platform.saveFile(
+      dialogTitle: 'Save selected logs as CSV',
+      fileName: fileName,
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+      bytes: Uint8List.fromList(utf8.encode(csvString)),
+    );
+
+    if (result == null) {
+      return; // User cancelled
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Logs saved to $result')));
+    }
   }
 
   Future<void> loadLogs() async {
@@ -65,9 +126,6 @@ class LogTabState extends State<LogTab> {
   }
 
   Future<bool?> showDeleteLogsDialog(BuildContext context, int logCount) {
-    if (logCount == 0) {
-      return Future.value(false);
-    }
     return showDialog<bool>(
       context: context,
       builder:
@@ -75,8 +133,14 @@ class LogTabState extends State<LogTab> {
             title: const Text('Delete Logs', style: TextStyles.dialogTitle),
             content: Text('Are you sure you want to delete $logCount log(s)?'),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel', style: TextStyles.buttonText)),
-              TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Delete', style: TextStyles.buttonText)),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text('Cancel', style: TextStyles.buttonText),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text('Delete', style: TextStyles.buttonText),
+              ),
             ],
           ),
     );
@@ -113,13 +177,21 @@ class LogTabState extends State<LogTab> {
         title: const Text("Past Logs"),
         actions: [
           IconButton(
+            icon: const Icon(Icons.download),
+            onPressed: selectedLogs.isEmpty ? null : downloadSelectedLogs,
+            tooltip: 'Download selected logs',
+          ),
+          IconButton(
             icon: const Icon(Icons.delete),
-            onPressed: () async {
-              final confirm = await showDeleteLogsDialog(context, selectedLogs.length);
-              if (confirm == true) {
-                await deleteSelectedLogs();
-              }
-            },
+            onPressed:
+                selectedLogs.isEmpty
+                    ? null
+                    : () async {
+                      final confirm = await showDeleteLogsDialog(context, selectedLogs.length);
+                      if (confirm == true) {
+                        await deleteSelectedLogs();
+                      }
+                    },
           ),
         ],
       ),
