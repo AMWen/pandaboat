@@ -39,7 +39,7 @@ class LogTabState extends State<LogTab> {
       final decoded = jsonDecode(raw) as List<dynamic>;
 
       // Add headers
-      csvData.add(["logId", "t", "speed", "smoothed", "lat", "lon", "distance", "spm"]);
+      csvData.add(["logId", "t", "speed", "calculatedSpeed", "smoothed", "lat", "lon", "distance", "spm"]);
 
       // Add data rows
       for (final entry in decoded) {
@@ -47,6 +47,7 @@ class LogTabState extends State<LogTab> {
           logId,
           "${entry['t']}",
           "${entry['speed']}",
+          "${entry['calculatedSpeed']}",
           "${entry['smoothed']}",
           "${entry['lat']}",
           "${entry['lon']}",
@@ -106,6 +107,7 @@ class LogTabState extends State<LogTab> {
           return {
             't': e['t'],
             'speed': e['speed'],
+            'calculatedSpeed': e['calculatedSpeed'],
             'smoothed': e['smoothed'],
             'lat': e['lat'],
             'lon': e['lon'],

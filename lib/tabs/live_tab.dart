@@ -18,6 +18,8 @@ class LiveTab extends StatefulWidget {
 
 class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   final logger = LocationLogger();
+  double minSpeedChange = 0.3;
+  double maxSpeed = 16;
 
   double currentSpeed = 0.0;
   double smoothedSpeed = 0.0;
@@ -112,6 +114,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
 
       // Calculate the distance traveled from the previous position to the current position
       double distance = 0.0;
+      double calculatedSpeed = 0.0;
       if (gpsBuffer.isNotEmpty) {
         final lastPosition = gpsBuffer.last;
         distance = Geolocator.distanceBetween(
@@ -120,13 +123,18 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
           position.latitude,
           position.longitude,
         );
+        calculatedSpeed = distance * 1000 / (elapsedMs - lastPosition['t']) * 3.6;
       }
+
+      // Skip storing data if due to GPS drift
+      if (speed > maxSpeed) return;
 
       // Update total distance
       totalDistance += distance;
 
       gpsBuffer.add({
         't': elapsedMs,
+        'calculatedSpeed': calculatedSpeed,
         'speed': speed,
         'smoothed': smoothedSpeed,
         'lat': position.latitude,
@@ -146,8 +154,9 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
 
       double previousSpeedChange = secondToLast['speed'] - thirdToLast['speed'];
       double currentSpeedChange = speed - secondToLast['speed'];
+
       if (currentSpeedChange > previousSpeedChange &&
-          currentSpeedChange > 0.3 &&
+          currentSpeedChange > minSpeedChange &&
           now.difference(lastJolt ?? DateTime(2000)).inMilliseconds > 500) {
         strokeCount++;
         strokes.add(now);
@@ -231,12 +240,74 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     super.dispose();
   }
 
+  void showSettingsDialog() {
+    final minSpeedController = TextEditingController(text: minSpeedChange.toString());
+    final maxSpeedController = TextEditingController(text: maxSpeed.toString());
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Settings'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: minSpeedController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Min Speed Change per Stroke',
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: primaryColor, width: 2),
+                    ),
+                    border: InputBorder.none,
+                  ),
+                ),
+                TextField(
+                  controller: maxSpeedController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Max Speed',
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: primaryColor, width: 2),
+                    ),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    minSpeedChange = double.tryParse(minSpeedController.text) ?? 0.3;
+                    maxSpeed = double.tryParse(maxSpeedController.text) ?? 16;
+                  });
+                  Navigator.pop(context);
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context); // <-- this is required for AutomaticKeepAliveClientMixin
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Live Metrics")),
+      appBar: AppBar(
+        title: const Text("Live Metrics"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: showSettingsDialog,
+            tooltip: 'Settings',
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -272,7 +343,10 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [Text(title, style: TextStyles.mediumText), Text(value, style: TextStyles.normalText)],
+        children: [
+          Text(title, style: TextStyles.mediumText),
+          Text(value, style: TextStyles.normalText),
+        ],
       ),
     );
   }
