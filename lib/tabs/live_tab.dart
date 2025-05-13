@@ -256,7 +256,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
               ),
               child: Text(
                 isRecording ? 'Stop Recording' : 'Start Recording',
-                style: TextStyle(color: secondaryColor),
+                style: TextStyles.buttonText,
               ),
             ),
             const SizedBox(height: 16),
@@ -271,7 +271,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w500)), Text(value)],
+        children: [Text(title, style: TextStyles.mediumText), Text(value, style: TextStyles.normalText)],
       ),
     );
   }

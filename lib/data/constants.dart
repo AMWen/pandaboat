@@ -5,10 +5,10 @@ Color secondaryColor = Colors.grey[200]!;
 Color dullColor = Colors.grey[500]!;
 
 class TextStyles {
-  static TextStyle whiteText = TextStyle(color: Colors.white);
-  static TextStyle mediumText = TextStyle(fontSize: 18, fontWeight: FontWeight.w600);
+  static TextStyle mediumText = TextStyle(fontSize: 16, fontWeight: FontWeight.w600);
   static TextStyle normalText = TextStyle(fontSize: 16);
   static TextStyle titleText = TextStyle(fontSize: 20, fontWeight: FontWeight.w500);
-  static TextStyle labelText = TextStyle(fontWeight: FontWeight.w500, fontSize: 16);
+  static TextStyle labelText = TextStyle(fontSize: 16, fontWeight: FontWeight.w500);
+  static TextStyle buttonText = TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: secondaryColor);
   static const TextStyle dialogTitle = TextStyle(fontSize: 18, fontWeight: FontWeight.w700);
 }

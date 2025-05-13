@@ -127,11 +127,12 @@ class InteractiveMap extends StatelessWidget {
                         context: context,
                         builder:
                             (_) => AlertDialog(
-                              title: const Text('GPS Point Info'),
+                              title: const Text('GPS Point Info', style: TextStyles.dialogTitle),
                               content: Text(
                                 'Time: ${formatTime(elapsed)}\n'
                                 'Distance: ${distance.toStringAsFixed(0)} m\n'
                                 'Speed: ${speed.toStringAsFixed(1)} km/hr\n',
+                                style: TextStyles.buttonText,
                               ),
                             ),
                       );

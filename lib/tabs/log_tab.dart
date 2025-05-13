@@ -74,8 +74,8 @@ class LogTabState extends State<LogTab> {
             title: const Text('Delete Logs', style: TextStyles.dialogTitle),
             content: Text('Are you sure you want to delete $logCount log(s)?'),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel', style: TextStyles.buttonText)),
+              TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Delete', style: TextStyles.buttonText)),
             ],
           ),
     );
@@ -90,6 +90,19 @@ class LogTabState extends State<LogTab> {
   String _formatDistance(double? distance) {
     if (distance == null) return '';
     return "${distance.toStringAsFixed(0)} m";
+  }
+
+  void toggleSelectAll() {
+    setState(() {
+      final allLogIds = logs.entries.map((entry) => entry.key).toSet();
+      final areAllSelected = allLogIds.every((id) => selectedLogs.contains(id));
+
+      if (areAllSelected) {
+        selectedLogs.clear();
+      } else {
+        selectedLogs = {...allLogIds}; // Select all
+      }
+    });
   }
 
   @override
@@ -114,30 +127,112 @@ class LogTabState extends State<LogTab> {
               ? const Center(child: Text('No logs found.'))
               : ListView(
                 children:
-                    logs.entries.map((entry) {
-                      final logId = entry.key;
-                      final entries = entry.value;
-                      return GestureDetector(
-                        onTap: () {
-                          openLog(logId); // Open the log in InteractiveMap when tapped
-                        },
-                        child: ListTile(
-                          title: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(formatLogId(logId)),
-                              Text(_formatDuration(entries.isNotEmpty ? entries.last['t'] : null)),
-                              Text(
+                // "Select All" checkbox row
+                [
+                  ListTile(
+                    key: ValueKey('selectAll'),
+                    minTileHeight: 10,
+                    contentPadding: EdgeInsets.only(top: 8),
+                    title: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GestureDetector(
+                          onTap: toggleSelectAll,
+                          child: SizedBox(
+                            height: 24,
+                            width: 50,
+                            child: Row(
+                              children: [
+                                Checkbox(
+                                  value: logs.entries.every(
+                                    (entry) => selectedLogs.contains(entry.key),
+                                  ),
+                                  onChanged: (bool? value) {
+                                    toggleSelectAll();
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 160, child: Text('Date', style: TextStyles.labelText)),
+                        SizedBox(width: 8),
+                        SizedBox(width: 75, child: Text('Duration', style: TextStyles.labelText)),
+                        SizedBox(width: 8),
+                        SizedBox(width: 75, child: Text('Distance', style: TextStyles.labelText)),
+                        SizedBox(width: 8),
+                      ],
+                    ),
+                  ),
+                  ...logs.entries.map((entry) {
+                    final logId = entry.key;
+                    final entries = entry.value;
+                    return GestureDetector(
+                      onTap: () => openLog(logId),
+                      child: ListTile(
+                        minTileHeight: 10,
+                        contentPadding: EdgeInsets.zero,
+                        title: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  if (selectedLogs.contains(logId)) {
+                                    selectedLogs.remove(logId);
+                                  } else {
+                                    selectedLogs.add(logId);
+                                  }
+                                });
+                              },
+                              child: SizedBox(
+                                height: 24,
+                                width: 50,
+                                child: Checkbox(
+                                  value: selectedLogs.contains(logId), // If item is selected
+                                  onChanged: (bool? value) {
+                                    setState(() {
+                                      if (value == true) {
+                                        selectedLogs.add(logId);
+                                      } else {
+                                        selectedLogs.remove(logId);
+                                      }
+                                    });
+                                  },
+                                ),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 160,
+                              child: Text(formatLogId(logId), style: TextStyles.normalText),
+                            ),
+                            SizedBox(width: 8),
+                            SizedBox(
+                              width: 75,
+                              child: Text(
+                                _formatDuration(entries.isNotEmpty ? entries.last['t'] : null),
+                                style: TextStyles.normalText,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            SizedBox(
+                              width: 75,
+                              child: Text(
                                 _formatDistance(
                                   entries.isNotEmpty ? entries.last['distance'] : null,
                                 ),
+                                style: TextStyles.normalText,
                               ),
-                            ],
-                          ),
-                          subtitle: Text("${entries.length} points"),
+                            ),
+                            SizedBox(width: 8),
+                          ],
                         ),
-                      );
-                    }).toList(), // Convert the mapped iterable back to a List of widgets
+                      ),
+                    );
+                  }),
+                ],
               ),
     );
   }
