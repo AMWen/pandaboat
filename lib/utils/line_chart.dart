@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:pandaboat/data/constants.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-int? calculateRoundedInterval(List<double> data, int intervals, List<Map<dynamic, int>> rules) {
+int? calculateRoundedInterval(List<double> data, double rawInterval, List<Map<dynamic, int>> rules) {
   if (data.length < 5) return null;
 
-  final rawInterval = (data.last - data.first) / intervals;
   for (var rule in rules) {
     final key = rule.keys.first;
     final value = rule.values.first;
@@ -50,14 +49,14 @@ Widget buildSimpleLineChart({
     {500: 100},
     {'else': 500},
   ];
-  int? intervalX = calculateRoundedInterval(xData, 5, xRules);
+  int? intervalX = calculateRoundedInterval(xData, maxX/5, xRules);
 
   List<Map<dynamic, int>> yRules = [
     {5: 1},
     {'else': 5},
   ];
-  int? intervalY = calculateRoundedInterval(yData, 10, yRules);
-  int? intervalY2 = yData2 != null ? calculateRoundedInterval(yData2, 10, yRules) : null;
+  int? intervalY = calculateRoundedInterval(yData, maxY/10, yRules);
+  int? intervalY2 = yData2 != null ? calculateRoundedInterval(yData2, maxY2/10, yRules) : null;
 
   return SfCartesianChart(
     zoomPanBehavior: ZoomPanBehavior(
@@ -84,6 +83,7 @@ Widget buildSimpleLineChart({
       ),
       if (spots2 != null)
         LineSeries<ChartData, double>(
+          yAxisName: 'secondaryYAxis',
           animationDuration: 0,
           dataSource: spots2,
           xValueMapper: (ChartData data, _) => data.x,
@@ -117,6 +117,7 @@ Widget buildSimpleLineChart({
         yData2 != null
             ? [
               NumericAxis(
+                name: 'secondaryYAxis',
                 minimum: minY2,
                 maximum: maxY2,
                 interval: intervalY2?.toDouble(),
