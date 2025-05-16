@@ -19,8 +19,9 @@ class LiveTab extends StatefulWidget {
 
 class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   final logger = LocationLogger();
-  double shakeThresholdGravity = 1.2;
+  double shakeThresholdGravity = 1.12;
   double maxSpeed = 16.5;
+  double maxDistance = 5;
 
   double currentSpeed = 0.0;
   double smoothedSpeed = 0.0;
@@ -52,7 +53,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     super.initState();
     _initLocation();
 
-    shakeDetector = initializeShakeDetector(shakeThresholdGravity);
+    shakeDetector = _initShakeDetector(shakeThresholdGravity);
     uiUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) => updateUI());
     spmTimer = Timer.periodic(const Duration(seconds: 1), (_) => calculateSPM());
     gpsFlushTimer = Timer.periodic(const Duration(seconds: 5), (_) {
@@ -62,7 +63,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     });
   }
 
-  ShakeDetector initializeShakeDetector(double threshold) {
+  ShakeDetector _initShakeDetector(double threshold) {
     return ShakeDetector.autoStart(
       onPhoneShake: (event) {
         final now = DateTime.now();
@@ -129,40 +130,50 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     if (isRecording && recordingStartTime != null) {
       final elapsedMs = now.difference(recordingStartTime!).inMilliseconds;
 
-      // Calculate the distance traveled from the previous position to the current position
-      double distance = 0.0;
-      double calculatedSpeed = 0.0;
-      if (gpsBuffer.isNotEmpty) {
-        final lastPosition = gpsBuffer.last;
-        distance = Geolocator.distanceBetween(
-          lastPosition['lat'],
-          lastPosition['lon'],
-          position.latitude,
-          position.longitude,
-        );
-        calculatedSpeed = distance * 1000 / (elapsedMs - lastPosition['t']) * 3.6;
-      }
-
-      // Skip storing data if due to GPS drift
-      if (speed > maxSpeed) return;
-
-      // Update total distance
-      totalDistance += distance;
-
-      gpsBuffer.add({
-        't': elapsedMs,
-        'calculatedSpeed': calculatedSpeed,
-        'speed': speed,
-        'smoothed': smoothedSpeed,
-        'lat': position.latitude,
-        'lon': position.longitude,
-        'distance': totalDistance,
-        'spm': spm,
+      // Offload to async task
+      Future.microtask(() {
+        processPosition(position, elapsedMs, speed);
       });
     }
 
+    // Maintain recent data
     recentData.add({'timestamp': now, 'speed': speed});
     recentData.removeWhere((entry) => now.difference(entry['timestamp']).inSeconds > 3);
+  }
+
+  void processPosition(Position position, int elapsedMs, double speed) {
+    double distance = 0.0;
+    double calculatedSpeed = 0.0;
+
+    if (gpsBuffer.isNotEmpty) {
+      final last = gpsBuffer.last;
+      final timeDelta = elapsedMs - last['t'];
+      if (timeDelta <= 0) return;
+
+      distance = Geolocator.distanceBetween(
+        last['lat'],
+        last['lon'],
+        position.latitude,
+        position.longitude,
+      );
+
+      calculatedSpeed = distance * 1000 / timeDelta * 3.6;
+    }
+
+    if (speed > maxSpeed || distance > maxDistance) return;
+
+    totalDistance += distance;
+
+    gpsBuffer.add({
+      't': elapsedMs,
+      'calculatedSpeed': calculatedSpeed,
+      'speed': speed,
+      'smoothed': smoothedSpeed,
+      'lat': position.latitude,
+      'lon': position.longitude,
+      'distance': totalDistance,
+      'spm': spm,
+    });
   }
 
   void updateUI() {
@@ -189,7 +200,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   }
 
   void calculateSPM() {
-    Duration window = Duration(seconds: 5);
+    Duration window = Duration(seconds: 5);  // SPM is averaged over past 5 seconds
     final now = strokes.isNotEmpty ? strokes.last : DateTime.now();
     final cutoff = now.subtract(window);
     strokes.retainWhere((s) => s.isAfter(cutoff));
@@ -246,6 +257,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   void showSettingsDialog() {
     final thresholdController = TextEditingController(text: shakeThresholdGravity.toString());
     final maxSpeedController = TextEditingController(text: maxSpeed.toString());
+    final maxDistanceController = TextEditingController(text: maxDistance.toString());
 
     showDialog(
       context: context,
@@ -270,7 +282,18 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
                   controller: maxSpeedController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: 'Max Speed',
+                    labelText: 'Max Speed (km/hr)',
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: primaryColor, width: 2),
+                    ),
+                    border: InputBorder.none,
+                  ),
+                ),
+                TextField(
+                  controller: maxDistanceController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Max Distance (m)',
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: primaryColor, width: 2),
                     ),
@@ -285,11 +308,12 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
                 onPressed: () {
                   setState(() {
                     maxSpeed = double.tryParse(maxSpeedController.text) ?? 16.5;
-                    shakeThresholdGravity = double.tryParse(thresholdController.text) ?? 1.2;
+                    maxDistance = double.tryParse(maxDistanceController.text) ?? 5;
+                    shakeThresholdGravity = double.tryParse(thresholdController.text) ?? 1.12;
 
                     // Recreate the ShakeDetector with the new threshold
                     shakeDetector?.stopListening();
-                    shakeDetector = initializeShakeDetector(shakeThresholdGravity);
+                    shakeDetector = _initShakeDetector(shakeThresholdGravity);
                   });
                   Navigator.pop(context);
                 },
