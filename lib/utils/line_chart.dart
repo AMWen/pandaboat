@@ -63,7 +63,7 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
     final double maxY = widget.yData.reduce(max);
 
     final double minY2 = 0;
-    final double maxY2 = (widget.yData2?.reduce(max) ?? 0) * 1.4;  // scale so graphs don't overlap
+    final double maxY2 = (widget.yData2?.reduce(max) ?? 0) * 1.4; // scale so graphs don't overlap
 
     final spots = List.generate(
       widget.xData.length,
@@ -78,12 +78,21 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
             )
             : null;
 
-    final int? intervalX = calculateRoundedInterval(widget.xData, maxX / 5, [
-      {7.5: 5},
-      {100: 10},
-      {500: 100},
-      {'else': 500},
-    ]);
+    final List<Map<dynamic, int>> intervals =
+        widget.xLabel.contains("Time")
+            ? [
+              {7.5: 5},
+              {100: 10},
+              {300: 60},
+              {'else': 300},
+            ]
+            : [
+              {7.5: 5},
+              {100: 10},
+              {500: 100},
+              {'else': 500},
+            ];
+    final int? intervalX = calculateRoundedInterval(widget.xData, maxX / 5, intervals);
 
     final int? intervalY = calculateRoundedInterval(widget.yData, maxY / 10, [
       {5: 1},
