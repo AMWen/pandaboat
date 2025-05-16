@@ -311,8 +311,8 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       metric("Instant. Speed (kph)", currentSpeed.toStringAsFixed(1)),
       metric("Stroke count", "$strokeCount"),
       metric("Avg Speed (3s) (kph)", smoothedSpeed.toStringAsFixed(1)),
-      metric("Latitude", latitude?.toStringAsFixed(3) ?? '—'),
-      metric("Longitude", longitude?.toStringAsFixed(3) ?? '—'),
+      metric("Latitude", latitude?.toStringAsFixed(2) ?? '—'),
+      metric("Longitude", longitude?.toStringAsFixed(2) ?? '—'),
     ];
 
     return Scaffold(
@@ -332,7 +332,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
           children: [
             GridView.count(
               crossAxisCount: 2,
-              childAspectRatio: 3 / 2,
+              childAspectRatio: 3 / 2.1,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
               shrinkWrap: true,
@@ -357,7 +357,6 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  // Updated metric widget for grid item
   Widget metric(String title, String value) {
     return Container(
       padding: const EdgeInsets.all(8),
@@ -366,12 +365,11 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
         border: Border.all(color: dullColor),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(title, style: TextStyles.mediumText),
-          const SizedBox(height: 6),
-          Text(value, style: TextStyles.largeMediumText),
+          Text(title, style: TextStyles.mediumText, textAlign: TextAlign.center),
+          Text(value, style: TextStyles.largeMediumText, textAlign: TextAlign.center),
         ],
       ),
     );
