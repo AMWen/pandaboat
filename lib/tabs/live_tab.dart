@@ -297,6 +297,17 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   Widget build(BuildContext context) {
     super.build(context); // <-- this is required for AutomaticKeepAliveClientMixin
 
+    final metrics = [
+      metric("Strokes per Minute", "$spm"),
+      metric("Elapsed Time", elapsedTime),
+      metric("Total Distance (m)", "${totalDistance.toStringAsFixed(0)}"),
+      metric("Instant. Speed (kph)", "${currentSpeed.toStringAsFixed(1)}"),
+      metric("Stroke count", "$strokeCount"),
+      metric("Avg Speed (3s) (kph)", "${smoothedSpeed.toStringAsFixed(1)}"),
+      metric("Latitude", latitude?.toStringAsFixed(6) ?? '—'),
+      metric("Longitude", longitude?.toStringAsFixed(6) ?? '—'),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Live Metrics"),
@@ -312,14 +323,15 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            metric("Latitude", latitude?.toStringAsFixed(6) ?? '—'),
-            metric("Longitude", longitude?.toStringAsFixed(6) ?? '—'),
-            metric("Instantaneous Speed", "${currentSpeed.toStringAsFixed(1)} km/hr"),
-            metric("Smoothed Speed (3s)", "${smoothedSpeed.toStringAsFixed(1)} km/hr"),
-            metric("Strokes per Minute", "$spm spm"),
-            metric("Stroke count", "$strokeCount"),
-            metric("Elapsed Time", elapsedTime),
-            metric("Total Distance", "${totalDistance.toStringAsFixed(0)} meters"),
+            GridView.count(
+              crossAxisCount: 2,
+              childAspectRatio: 3 / 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              children: metrics,
+            ),
             SizedBox(height: 50),
             FilledButton(
               onPressed: toggleRecording,
@@ -338,14 +350,21 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     );
   }
 
+  // Updated metric widget for grid item
   Widget metric(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: dullColor),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(title, style: TextStyles.mediumText),
-          Text(value, style: TextStyles.normalText),
+          const SizedBox(height: 6),
+          Text(value, style: TextStyles.largeMediumText),
         ],
       ),
     );
