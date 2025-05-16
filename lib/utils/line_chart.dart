@@ -63,7 +63,7 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
     final double maxY = widget.yData.reduce(max);
 
     final double minY2 = 0;
-    final double maxY2 = (widget.yData2?.reduce(max) ?? 0) * 1.1;
+    final double maxY2 = (widget.yData2?.reduce(max) ?? 0) * 1.4;  // scale so graphs don't overlap
 
     final spots = List.generate(
       widget.xData.length,
@@ -125,6 +125,7 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
             zoomPanBehavior: ZoomPanBehavior(
               enablePinching: true,
               enablePanning: true,
+              enableSelectionZooming: true,
               zoomMode: ZoomMode.xy,
               maximumZoomLevel: 0.05,
             ),
@@ -139,7 +140,7 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
                   color: widget.color,
                   width: 2,
                   markerSettings: MarkerSettings(
-                    isVisible: true,
+                    isVisible: false,
                     width: 2.2,
                     height: 2.2,
                     color: widget.color,
@@ -157,7 +158,7 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
                   color: widget.color2,
                   width: 2,
                   markerSettings: MarkerSettings(
-                    isVisible: true,
+                    isVisible: false,
                     width: 2.2,
                     height: 2.2,
                     color: widget.color2,
