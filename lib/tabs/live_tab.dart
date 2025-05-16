@@ -6,6 +6,7 @@ import 'package:geolocator_android/geolocator_android.dart';
 import 'package:geolocator_apple/geolocator_apple.dart';
 import 'package:pandaboat/data/constants.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:shake/shake.dart';
 import '../data/services/location_logger.dart';
 import '../utils/time_format.dart';
 
@@ -18,8 +19,8 @@ class LiveTab extends StatefulWidget {
 
 class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   final logger = LocationLogger();
-  double minSpeedChange = 0.3;
-  double maxSpeed = 16;
+  double shakeThresholdGravity = 1.2;
+  double maxSpeed = 16.5;
 
   double currentSpeed = 0.0;
   double smoothedSpeed = 0.0;
@@ -38,6 +39,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   final List<Map<String, dynamic>> gpsBuffer = [];
 
   double totalDistance = 0.0;
+  ShakeDetector? shakeDetector;
   Timer? spmTimer;
   Timer? uiUpdateTimer;
   Timer? gpsFlushTimer;
@@ -50,6 +52,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     super.initState();
     _initLocation();
 
+    shakeDetector = initializeShakeDetector(shakeThresholdGravity);
     uiUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) => updateUI());
     spmTimer = Timer.periodic(const Duration(seconds: 1), (_) => calculateSPM());
     gpsFlushTimer = Timer.periodic(const Duration(seconds: 5), (_) {
@@ -57,6 +60,20 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
         flushGPSData();
       }
     });
+  }
+
+  ShakeDetector initializeShakeDetector(double threshold) {
+    return ShakeDetector.autoStart(
+      onPhoneShake: (event) {
+        final now = DateTime.now();
+        if (strokes.isEmpty || now.difference(strokes.last).inMilliseconds > 500) {
+          strokes.add(now);
+          strokeCount++;
+        }
+      },
+      shakeThresholdGravity: threshold,
+      useFilter: false,
+    );
   }
 
   Future<void> _initLocation() async {
@@ -146,22 +163,6 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
 
     recentData.add({'timestamp': now, 'speed': speed});
     recentData.removeWhere((entry) => now.difference(entry['timestamp']).inSeconds > 3);
-    final lastJolt = strokes.isNotEmpty ? strokes.last : null;
-
-    if (recentData.length >= 3) {
-      final thirdToLast = recentData[recentData.length - 3];
-      final secondToLast = recentData[recentData.length - 2];
-
-      double previousSpeedChange = secondToLast['speed'] - thirdToLast['speed'];
-      double currentSpeedChange = speed - secondToLast['speed'];
-
-      if (currentSpeedChange > previousSpeedChange &&
-          currentSpeedChange > minSpeedChange &&
-          now.difference(lastJolt ?? DateTime(2000)).inMilliseconds > 500) {
-        strokeCount++;
-        strokes.add(now);
-      }
-    }
   }
 
   void updateUI() {
@@ -237,11 +238,13 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   void dispose() {
     spmTimer?.cancel();
     uiUpdateTimer?.cancel();
+    gpsFlushTimer?.cancel();
+    shakeDetector?.stopListening();
     super.dispose();
   }
 
   void showSettingsDialog() {
-    final minSpeedController = TextEditingController(text: minSpeedChange.toString());
+    final thresholdController = TextEditingController(text: shakeThresholdGravity.toString());
     final maxSpeedController = TextEditingController(text: maxSpeed.toString());
 
     showDialog(
@@ -253,10 +256,10 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
-                  controller: minSpeedController,
+                  controller: thresholdController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: 'Min Speed Change per Stroke',
+                    labelText: 'Shake Threshold Gravity (for Stroke Count)',
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: primaryColor, width: 2),
                     ),
@@ -281,8 +284,12 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
               ElevatedButton(
                 onPressed: () {
                   setState(() {
-                    minSpeedChange = double.tryParse(minSpeedController.text) ?? 0.3;
-                    maxSpeed = double.tryParse(maxSpeedController.text) ?? 16;
+                    maxSpeed = double.tryParse(maxSpeedController.text) ?? 16.5;
+                    shakeThresholdGravity = double.tryParse(thresholdController.text) ?? 1.2;
+
+                    // Recreate the ShakeDetector with the new threshold
+                    shakeDetector?.stopListening();
+                    shakeDetector = initializeShakeDetector(shakeThresholdGravity);
                   });
                   Navigator.pop(context);
                 },
@@ -300,12 +307,12 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     final metrics = [
       metric("Strokes per Minute", "$spm"),
       metric("Elapsed Time", elapsedTime),
-      metric("Total Distance (m)", "${totalDistance.toStringAsFixed(0)}"),
-      metric("Instant. Speed (kph)", "${currentSpeed.toStringAsFixed(1)}"),
+      metric("Total Distance (m)", totalDistance.toStringAsFixed(0)),
+      metric("Instant. Speed (kph)", currentSpeed.toStringAsFixed(1)),
       metric("Stroke count", "$strokeCount"),
-      metric("Avg Speed (3s) (kph)", "${smoothedSpeed.toStringAsFixed(1)}"),
-      metric("Latitude", latitude?.toStringAsFixed(6) ?? '—'),
-      metric("Longitude", longitude?.toStringAsFixed(6) ?? '—'),
+      metric("Avg Speed (3s) (kph)", smoothedSpeed.toStringAsFixed(1)),
+      metric("Latitude", latitude?.toStringAsFixed(3) ?? '—'),
+      metric("Longitude", longitude?.toStringAsFixed(3) ?? '—'),
     ];
 
     return Scaffold(

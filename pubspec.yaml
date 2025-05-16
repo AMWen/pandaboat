@@ -43,6 +43,7 @@ dependencies:
   latlong2: ^0.9.1
   intl: ^0.20.2
   syncfusion_flutter_charts: ^29.1.41
+  shake: ^3.0.0
   flutter:
     sdk: flutter
 
