@@ -37,7 +37,9 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   String? currentLogId;
 
   final List<Map<String, dynamic>> recentData = [];
+  final List<Map<String, dynamic>> recentCalculatedData = [];
   final List<Map<String, dynamic>> gpsBuffer = [];
+  Map<String, dynamic>? lastProcessedPosition;
 
   double totalDistance = 0.0;
   ShakeDetector? shakeDetector;
@@ -129,25 +131,21 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
 
     if (isRecording && recordingStartTime != null) {
       final elapsedMs = now.difference(recordingStartTime!).inMilliseconds;
-
-      // Offload to async task
-      Future.microtask(() {
-        processPosition(position, elapsedMs, speed);
-      });
+      processPosition(position, now, elapsedMs, speed);
     }
 
     // Maintain recent data
     recentData.add({'timestamp': now, 'speed': speed});
-    recentData.removeWhere((entry) => now.difference(entry['timestamp']).inSeconds > 3);
+    recentData.removeWhere((entry) => now.difference(entry['timestamp']).inSeconds > 4);
   }
 
-  void processPosition(Position position, int elapsedMs, double speed) {
+  void processPosition(Position position, DateTime now, int elapsedMs, double speed) {
     double distance = 0.0;
     double calculatedSpeed = 0.0;
 
-    if (gpsBuffer.isNotEmpty) {
-      final last = gpsBuffer.last;
-      final timeDelta = elapsedMs - last['t'];
+    if (lastProcessedPosition != null) {
+      final last = lastProcessedPosition;
+      final timeDelta = elapsedMs - last!['t'];
       if (timeDelta <= 0) return;
 
       distance = Geolocator.distanceBetween(
@@ -162,11 +160,21 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
 
     if (speed > maxSpeed || distance > maxDistance) return;
 
+    lastProcessedPosition = {'t': elapsedMs, 'lat': position.latitude, 'lon': position.longitude};
     totalDistance += distance;
+
+    recentCalculatedData.add({'timestamp': now, 'speed': calculatedSpeed});
+    recentCalculatedData.removeWhere((entry) => now.difference(entry['timestamp']).inSeconds > 4);
+    final smoothedCalculated =
+        recentCalculatedData.isEmpty
+            ? 0.0
+            : recentCalculatedData.map((e) => e['speed']).reduce((a, b) => a + b) /
+                recentCalculatedData.length;
 
     gpsBuffer.add({
       't': elapsedMs,
       'calculatedSpeed': calculatedSpeed,
+      'smoothedCalculated': smoothedCalculated,
       'speed': speed,
       'smoothed': smoothedSpeed,
       'lat': position.latitude,
@@ -200,7 +208,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   }
 
   void calculateSPM() {
-    Duration window = Duration(seconds: 5);  // SPM is averaged over past 5 seconds
+    Duration window = Duration(seconds: 5); // SPM is averaged over past 5 seconds
     final now = strokes.isNotEmpty ? strokes.last : DateTime.now();
     final cutoff = now.subtract(window);
     strokes.retainWhere((s) => s.isAfter(cutoff));
@@ -227,6 +235,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
 
     if (isRecording) {
       totalDistance = 0;
+      lastProcessedPosition = null;
       recordingStartTime = DateTime.now();
       currentLogId = recordingStartTime!.toIso8601String();
       logger.startNewLog(currentLogId!);

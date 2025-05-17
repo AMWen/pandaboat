@@ -26,7 +26,7 @@ class InteractiveMap extends StatelessWidget {
         'icon': Icon(Icons.multiline_chart),
         'tab': InteractiveLineChart(
           xData: getData('distance'),
-          yData: getData('speed'),
+          yData: getData('calculatedSpeed'),
           yData2: gpsData.map((e) => e['spm'] as double? ?? 0).toList(),
           xLabel: "Distance (m)",
           yLabel: "Speed (km/hr)",
@@ -38,7 +38,7 @@ class InteractiveMap extends StatelessWidget {
         'icon': Row(children: [Icon(Icons.multiline_chart), Icon(Icons.iron)]),
         'tab': InteractiveLineChart(
           xData: getData('distance'),
-          yData: getData('smoothed'),
+          yData: getData('smoothedCalculated'),
           yData2: getData('spm'),
           xLabel: "Distance (m)",
           yLabel: "Speed (km/hr)",
@@ -50,7 +50,7 @@ class InteractiveMap extends StatelessWidget {
         'icon': Icon(Icons.timer),
         'tab': InteractiveLineChart(
           xData: gpsData.map((e) => (e['t'] as int).toDouble() / 1000).toList(),
-          yData: getData('speed'),
+          yData: getData('calculatedSpeed'),
           yData2: getData('spm'),
           xLabel: "Time (s)",
           yLabel: "Speed (km/hr)",
@@ -62,7 +62,7 @@ class InteractiveMap extends StatelessWidget {
         'icon': Row(children: [Icon(Icons.timer), Icon(Icons.iron)]),
         'tab': InteractiveLineChart(
           xData: gpsData.map((e) => (e['t'] as int).toDouble() / 1000).toList(),
-          yData: getData('smoothed'),
+          yData: getData('smoothedCalculated'),
           yData2: getData('spm'),
           xLabel: "Time (s)",
           yLabel: "Speed (km/hr)",
