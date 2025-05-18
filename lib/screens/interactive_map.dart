@@ -50,7 +50,7 @@ class InteractiveMap extends StatelessWidget {
         'name': 'Speed and SPM vs Time',
         'icon': Icon(Icons.timer),
         'tab': InteractiveLineChart(
-          xData: gpsData.map((e) => e.t.toDouble() / 1000).toList(),
+          xData: extractField(gpsData, (e) => e.t.toDouble() / 1000),
           yData: extractField(gpsData, (e) => e.calculatedSpeed),
           yData2: extractField(gpsData, (e) => e.spm),
           xLabel: "Time (s)",
@@ -62,7 +62,7 @@ class InteractiveMap extends StatelessWidget {
         'name': 'Smoothed Speed and SPM vs Time',
         'icon': Row(children: [Icon(Icons.timer), Icon(Icons.iron)]),
         'tab': InteractiveLineChart(
-          xData: gpsData.map((e) => e.t.toDouble() / 1000).toList(),
+          xData: extractField(gpsData, (e) => e.t.toDouble() / 1000),
           yData: extractField(gpsData, (e) => e.smoothedCalculated),
           yData2: extractField(gpsData, (e) => e.spm),
           xLabel: "Time (s)",
@@ -98,69 +98,70 @@ class InteractiveMap extends StatelessWidget {
   }
 
   List<double> extractField(List<GpsData> data, double Function(GpsData) fieldSelector) {
-    return data.map(fieldSelector).toList();
+    return data.where((e) => e.outlier == false).map(fieldSelector).toList();
   }
 
   Widget _buildMap(BuildContext context, double minSpeed, double maxSpeed) {
-    final polylinePoints = gpsData.map((point) => LatLng(point.lat, point.lon)).toList();
+    // Filter out outliers first, then create the polyline and markers
+    final filteredData = gpsData.where((point) => !point.outlier).toList();
+
+    final polylinePoints = filteredData.map((point) => LatLng(point.lat, point.lon)).toList();
+
+    final markers =
+        filteredData.asMap().entries.map((entry) {
+          final index = entry.key;
+          final point = entry.value;
+          final speed = point.speed;
+          final distance = point.distance;
+          final elapsed = Duration(milliseconds: point.t);
+          final latLng = LatLng(point.lat, point.lon);
+
+          return Marker(
+            point: latLng,
+            width: 20,
+            height: 20,
+            child: GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder:
+                      (_) => AlertDialog(
+                        title: const Text('GPS Point Info', style: TextStyles.dialogTitle),
+                        content: Text(
+                          'Time: ${formatTime(elapsed)}\n'
+                          'Distance: ${distance.toStringAsFixed(0)} m\n'
+                          'Speed: ${speed.toStringAsFixed(1)} km/hr\n',
+                          style: TextStyles.buttonText,
+                        ),
+                      ),
+                );
+              },
+              child:
+                  index == 0
+                      ? Icon(Icons.home, color: primaryColor, size: 36)
+                      : (index == filteredData.length - 1
+                          ? Icon(Icons.sports_score, color: Colors.black, size: 36)
+                          : Container(
+                            decoration: BoxDecoration(
+                              color: _getColorForSpeed(speed, minSpeed, maxSpeed),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.black26),
+                            ),
+                          )),
+            ),
+          );
+        }).toList();
 
     return FlutterMap(
       options: MapOptions(initialCenter: polylinePoints.first, initialZoom: 18.0),
       children: [
         TileLayer(urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
-
         PolylineLayer(
           polylines: [
             Polyline(points: polylinePoints, strokeWidth: 4.0, color: Colors.blue.withAlpha(150)),
           ],
         ),
-
-        MarkerLayer(
-          markers:
-              gpsData.asMap().entries.map((entry) {
-                final index = entry.key;
-                final point = entry.value;
-                final speed = point.speed;
-                final distance = point.distance;
-                final elapsed = Duration(milliseconds: point.t);
-                final latLng = LatLng(point.lat, point.lon);
-
-                return Marker(
-                  point: latLng,
-                  width: 20,
-                  height: 20,
-                  child: GestureDetector(
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder:
-                            (_) => AlertDialog(
-                              title: const Text('GPS Point Info', style: TextStyles.dialogTitle),
-                              content: Text(
-                                'Time: ${formatTime(elapsed)}\n'
-                                'Distance: ${distance.toStringAsFixed(0)} m\n'
-                                'Speed: ${speed.toStringAsFixed(1)} km/hr\n',
-                                style: TextStyles.buttonText,
-                              ),
-                            ),
-                      );
-                    },
-                    child:
-                        index == 0
-                            ? Icon(Icons.home, color: primaryColor, size: 36)
-                            : (index == gpsData.length - 1
-                                ? Icon(Icons.sports_score, color: Colors.black, size: 36)
-                                : Container(
-                                  decoration: BoxDecoration(
-                                    color: _getColorForSpeed(speed, minSpeed, maxSpeed),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.black26),
-                                  ),
-                                )),
-                  ),
-                );
-              }).toList(),
-        ),
+        MarkerLayer(markers: markers),
       ],
     );
   }
