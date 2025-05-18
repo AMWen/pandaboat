@@ -197,7 +197,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       elapsedTime = getElapsedTime();
     });
 
-    if (gpsBuffer.isEmpty) return;
+    if (recentData.isEmpty) return;
 
     final latest = recentData.last;
     final smooth =
