@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../data/models/gps_data.dart';
 import '../data/constants.dart';
 import '../utils/line_chart.dart';
 import '../utils/time_format.dart';
 
 class InteractiveMap extends StatelessWidget {
-  final List<Map<String, dynamic>> gpsData;
+  final List<GpsData> gpsData;
 
   const InteractiveMap({super.key, required this.gpsData});
 
   @override
   Widget build(BuildContext context) {
-    final speeds = getData('speed');
+    final speeds = extractField(gpsData, (e) => e.speed);
     final minSpeed = speeds.reduce((a, b) => a < b ? a : b);
     final maxSpeed = speeds.reduce((a, b) => a > b ? a : b);
     final List<Map<String, dynamic>> tabsList = [
@@ -25,9 +26,9 @@ class InteractiveMap extends StatelessWidget {
         'name': 'Speed and SPM vs Distance',
         'icon': Icon(Icons.multiline_chart),
         'tab': InteractiveLineChart(
-          xData: getData('distance'),
-          yData: getData('calculatedSpeed'),
-          yData2: gpsData.map((e) => e['spm'] as double? ?? 0).toList(),
+          xData: extractField(gpsData, (e) => e.distance),
+          yData: extractField(gpsData, (e) => e.calculatedSpeed),
+          yData2: extractField(gpsData, (e) => e.spm),
           xLabel: "Distance (m)",
           yLabel: "Speed (km/hr)",
           yLabel2: "SPM",
@@ -37,9 +38,9 @@ class InteractiveMap extends StatelessWidget {
         'name': 'Smoothed Speed and SPM vs Distance',
         'icon': Row(children: [Icon(Icons.multiline_chart), Icon(Icons.iron)]),
         'tab': InteractiveLineChart(
-          xData: getData('distance'),
-          yData: getData('smoothedCalculated'),
-          yData2: getData('spm'),
+          xData: extractField(gpsData, (e) => e.distance),
+          yData: extractField(gpsData, (e) => e.smoothedCalculated),
+          yData2: extractField(gpsData, (e) => e.spm),
           xLabel: "Distance (m)",
           yLabel: "Speed (km/hr)",
           yLabel2: "SPM",
@@ -49,9 +50,9 @@ class InteractiveMap extends StatelessWidget {
         'name': 'Speed and SPM vs Time',
         'icon': Icon(Icons.timer),
         'tab': InteractiveLineChart(
-          xData: gpsData.map((e) => (e['t'] as int).toDouble() / 1000).toList(),
-          yData: getData('calculatedSpeed'),
-          yData2: getData('spm'),
+          xData: gpsData.map((e) => e.t.toDouble() / 1000).toList(),
+          yData: extractField(gpsData, (e) => e.calculatedSpeed),
+          yData2: extractField(gpsData, (e) => e.spm),
           xLabel: "Time (s)",
           yLabel: "Speed (km/hr)",
           yLabel2: "SPM",
@@ -61,9 +62,9 @@ class InteractiveMap extends StatelessWidget {
         'name': 'Smoothed Speed and SPM vs Time',
         'icon': Row(children: [Icon(Icons.timer), Icon(Icons.iron)]),
         'tab': InteractiveLineChart(
-          xData: gpsData.map((e) => (e['t'] as int).toDouble() / 1000).toList(),
-          yData: getData('smoothedCalculated'),
-          yData2: getData('spm'),
+          xData: gpsData.map((e) => e.t.toDouble() / 1000).toList(),
+          yData: extractField(gpsData, (e) => e.smoothedCalculated),
+          yData2: extractField(gpsData, (e) => e.spm),
           xLabel: "Time (s)",
           yLabel: "Speed (km/hr)",
           yLabel2: "SPM",
@@ -96,12 +97,12 @@ class InteractiveMap extends StatelessWidget {
     );
   }
 
-  List<double> getData(String value) {
-    return gpsData.map((e) => e[value] as double? ?? 0).toList();
+  List<double> extractField(List<GpsData> data, double Function(GpsData) fieldSelector) {
+    return data.map(fieldSelector).toList();
   }
 
   Widget _buildMap(BuildContext context, double minSpeed, double maxSpeed) {
-    final polylinePoints = gpsData.map((point) => LatLng(point['lat'], point['lon'])).toList();
+    final polylinePoints = gpsData.map((point) => LatLng(point.lat, point.lon)).toList();
 
     return FlutterMap(
       options: MapOptions(initialCenter: polylinePoints.first, initialZoom: 18.0),
@@ -119,10 +120,10 @@ class InteractiveMap extends StatelessWidget {
               gpsData.asMap().entries.map((entry) {
                 final index = entry.key;
                 final point = entry.value;
-                final speed = point['speed'];
-                final distance = point['distance'];
-                final elapsed = Duration(milliseconds: point['t']);
-                final latLng = LatLng(point['lat'], point['lon']);
+                final speed = point.speed;
+                final distance = point.distance;
+                final elapsed = Duration(milliseconds: point.t);
+                final latLng = LatLng(point.lat, point.lon);
 
                 return Marker(
                   point: latLng,

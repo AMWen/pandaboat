@@ -7,6 +7,7 @@ import 'package:geolocator_apple/geolocator_apple.dart';
 import 'package:pandaboat/data/constants.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shake/shake.dart';
+import '../data/models/gps_data.dart';
 import '../data/services/location_logger.dart';
 import '../utils/time_format.dart';
 
@@ -31,6 +32,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   double? latitude;
   double? longitude;
   String elapsedTime = '—';
+  bool outlier = false;
 
   bool isRecording = false;
   DateTime? recordingStartTime;
@@ -135,7 +137,12 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     }
 
     // Maintain recent data
-    recentData.add({'timestamp': now, 'speed': speed});
+    recentData.add({
+      'timestamp': now,
+      'speed': speed,
+      'lat': position.latitude,
+      'lon': position.longitude,
+    });
     recentData.removeWhere((entry) => now.difference(entry['timestamp']).inSeconds > 4);
   }
 
@@ -158,8 +165,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       calculatedSpeed = distance * 1000 / timeDelta * 3.6;
     }
 
-    if (speed > maxSpeed || distance > maxDistance) return;
-
+    outlier = speed > maxSpeed || distance > maxDistance;
     lastProcessedPosition = {'t': elapsedMs, 'lat': position.latitude, 'lon': position.longitude};
     totalDistance += distance;
 
@@ -171,17 +177,19 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
             : recentCalculatedData.map((e) => e['speed']).reduce((a, b) => a + b) /
                 recentCalculatedData.length;
 
-    gpsBuffer.add({
-      't': elapsedMs,
-      'calculatedSpeed': calculatedSpeed,
-      'smoothedCalculated': smoothedCalculated,
-      'speed': speed,
-      'smoothed': smoothedSpeed,
-      'lat': position.latitude,
-      'lon': position.longitude,
-      'distance': totalDistance,
-      'spm': spm,
-    });
+    final gpsEntry = GpsData(
+      t: elapsedMs,
+      speed: speed,
+      calculatedSpeed: calculatedSpeed,
+      smoothedCalculated: smoothedCalculated,
+      smoothed: smoothedSpeed,
+      lat: position.latitude,
+      lon: position.longitude,
+      distance: totalDistance,
+      spm: spm,
+      outlier: outlier,
+    );
+    gpsBuffer.add(gpsEntry.toJson());
   }
 
   void updateUI() {
@@ -191,7 +199,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
 
     if (gpsBuffer.isEmpty) return;
 
-    final latest = gpsBuffer.last;
+    final latest = recentData.last;
     final smooth =
         recentData.isEmpty
             ? 0.0

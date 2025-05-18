@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
 import '../data/constants.dart';
+import '../data/models/gps_data.dart';
 import '../data/services/location_logger.dart';
 import '../screens/interactive_map.dart';
 import '../utils/time_format.dart';
@@ -102,19 +103,7 @@ class LogTabState extends State<LogTab> {
     if (raw == null) return;
 
     final decoded = jsonDecode(raw) as List;
-    final gpsData =
-        decoded.map((e) {
-          return {
-            't': e['t'],
-            'speed': e['speed'],
-            'calculatedSpeed': e['calculatedSpeed'],
-            'smoothed': e['smoothed'],
-            'lat': e['lat'],
-            'lon': e['lon'],
-            'distance': e['distance'],
-            'spm': e['spm'],
-          };
-        }).toList();
+    final gpsData = decoded.map((e) => GpsData.fromJson(e)).toList();
 
     if (!mounted) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => InteractiveMap(gpsData: gpsData)));
