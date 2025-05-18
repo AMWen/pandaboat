@@ -56,14 +56,20 @@ flutter build ios --release
 ```bash
 lib/
 ├── data/
+│   ├── models/
+│   │   └── gps_data.dart
 │   └── services/
-│   │   ├── gps_service.dart
-│   │   ├── location_logger.dart
-│   │   └── export_service.dart
+│   │   ├── export_service.dart
+│   │   └── location_logger.dart
 │   └── constants.dart
+├── screens/
+│   └── interactive_map.dart
 ├── tabs/
 │   ├── live_tab.dart
 │   └── log_tab.dart
+├── utils/
+│   ├── line_chart.dart
+│   └── time_format.dart
 ├── main.dart
 pubspec.yaml
 ```
