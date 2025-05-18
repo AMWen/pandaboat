@@ -243,6 +243,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
 
     if (isRecording) {
       totalDistance = 0;
+      strokeCount = 0;
       lastProcessedPosition = null;
       recordingStartTime = DateTime.now();
       currentLogId = recordingStartTime!.toIso8601String();
