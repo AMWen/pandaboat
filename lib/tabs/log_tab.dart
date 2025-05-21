@@ -38,23 +38,14 @@ class LogTabState extends State<LogTab> {
       if (raw == null) continue;
 
       final decoded = jsonDecode(raw) as List<dynamic>;
+      final gpsEntries = decoded.map((e) => GpsData.fromJson(e)).toList();
 
       // Add headers
-      csvData.add(["logId", "t", "speed", "calculatedSpeed", "smoothed", "lat", "lon", "distance", "spm"]);
+      csvData.add(GpsData.csvHeaders());
 
       // Add data rows
-      for (final entry in decoded) {
-        csvData.add([
-          logId,
-          "${entry['t']}",
-          "${entry['speed']}",
-          "${entry['calculatedSpeed']}",
-          "${entry['smoothed']}",
-          "${entry['lat']}",
-          "${entry['lon']}",
-          "${entry['distance']}",
-          "${entry['spm']}",
-        ]);
+      for (final entry in gpsEntries) {
+        csvData.add(entry.toCsvRow(logId));
       }
 
       // Blank line between logs

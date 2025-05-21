@@ -52,4 +52,38 @@ class GpsData {
       'outlier': outlier,
     };
   }
+
+  /// Returns field names (headers)
+  static List<String> csvHeaders({bool includeLogId = true}) {
+    return [
+      if (includeLogId) 'logId',
+      't',
+      'speed',
+      'calculatedSpeed',
+      'smoothedCalculated',
+      'smoothed',
+      'lat',
+      'lon',
+      'distance',
+      'spm',
+      'outlier',
+    ];
+  }
+
+  /// Returns field values as a list of strings (for CSV row)
+  List<String> toCsvRow(String logId) {
+    return [
+      logId,
+      t.toString(),
+      speed.toString(),
+      calculatedSpeed.toString(),
+      smoothedCalculated.toString(),
+      smoothed.toString(),
+      lat.toString(),
+      lon.toString(),
+      distance.toString(),
+      spm.toString(),
+      outlier.toString(),
+    ];
+  }
 }
