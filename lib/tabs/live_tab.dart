@@ -167,11 +167,13 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       calculatedSpeed = distance * 1000 / timeDelta * 3.6;
     }
 
-    outlier = speed > maxSpeed || distance > maxDistance;
+    outlier = speed > maxSpeed || distance > maxDistance || calculatedSpeed > maxSpeed;
     lastProcessedPosition = {'t': elapsedMs, 'lat': position.latitude, 'lon': position.longitude};
     totalDistance += distance;
 
-    recentCalculatedData.add({'timestamp': now, 'speed': calculatedSpeed});
+    if (!outlier) {
+      recentCalculatedData.add({'timestamp': now, 'speed': calculatedSpeed});
+    }
     recentCalculatedData.removeWhere((entry) => now.difference(entry['timestamp']).inSeconds > 4);
     final smoothedCalculated =
         recentCalculatedData.isEmpty
@@ -349,7 +351,8 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
               ElevatedButton(
                 onPressed: () {
                   setState(() {
-                    shakeThresholdGravity = double.tryParse(thresholdController.text) ?? defaultShakeThresholdGravity;
+                    shakeThresholdGravity =
+                        double.tryParse(thresholdController.text) ?? defaultShakeThresholdGravity;
                     maxSPM = double.tryParse(maxSPMController.text) ?? defaultMaxSPM;
                     maxSpeed = double.tryParse(maxSpeedController.text) ?? defaultMaxSpeed;
                     maxDistance = double.tryParse(maxDistanceController.text) ?? defaultMaxDistance;
