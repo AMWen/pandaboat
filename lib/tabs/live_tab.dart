@@ -20,9 +20,10 @@ class LiveTab extends StatefulWidget {
 
 class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   final logger = LocationLogger();
-  double shakeThresholdGravity = 1.12;
-  double maxSpeed = 16.5;
-  double maxDistance = 5;
+  double shakeThresholdGravity = defaultShakeThresholdGravity;
+  double maxSPM = defaultMaxSPM;
+  double maxSpeed = defaultMaxSpeed;
+  double maxDistance = defaultMaxDistance;
 
   double currentSpeed = 0.0;
   double smoothedSpeed = 0.0;
@@ -71,7 +72,8 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     return ShakeDetector.autoStart(
       onPhoneShake: (event) {
         final now = DateTime.now();
-        if (strokes.isEmpty || now.difference(strokes.last).inMilliseconds > 500) {
+        if (strokes.isEmpty ||
+            now.difference(strokes.last).inMilliseconds > (1 / maxSPM * 1000 * 60)) {
           strokes.add(now);
           strokeCount++;
         }
@@ -220,14 +222,24 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     final now = strokes.isNotEmpty ? strokes.last : DateTime.now();
     final cutoff = now.subtract(window);
     strokes.retainWhere((s) => s.isAfter(cutoff));
-    if (strokes.length < 2) return;
+    setState(() {
+      strokes = strokes;
+    });
+
+    if (strokes.length < 2) {
+      setState(() {
+        spm = 0;
+      });
+      return;
+    }
 
     final duration = strokes.last.difference(strokes.first).inMilliseconds / 1000.0;
-    if (duration == 0) return;
 
     setState(() {
-      spm = ((strokes.length - 1) / duration * 60 * 2).round() / 2; // round to nearest 0.5
-      strokes = strokes;
+      spm =
+          duration == 0
+              ? 0
+              : ((strokes.length - 1) / duration * 60 * 2).round() / 2; // round to nearest 0.5
     });
   }
 
@@ -274,6 +286,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
 
   void showSettingsDialog() {
     final thresholdController = TextEditingController(text: shakeThresholdGravity.toString());
+    final maxSPMController = TextEditingController(text: maxSPM.toString());
     final maxSpeedController = TextEditingController(text: maxSpeed.toString());
     final maxDistanceController = TextEditingController(text: maxDistance.toString());
 
@@ -290,6 +303,17 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     labelText: 'Shake Threshold Gravity (for Stroke Count)',
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: primaryColor, width: 2),
+                    ),
+                    border: InputBorder.none,
+                  ),
+                ),
+                TextField(
+                  controller: maxSPMController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Max SPM',
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: primaryColor, width: 2),
                     ),
@@ -325,9 +349,10 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
               ElevatedButton(
                 onPressed: () {
                   setState(() {
-                    maxSpeed = double.tryParse(maxSpeedController.text) ?? 16.5;
-                    maxDistance = double.tryParse(maxDistanceController.text) ?? 5;
-                    shakeThresholdGravity = double.tryParse(thresholdController.text) ?? 1.12;
+                    shakeThresholdGravity = double.tryParse(thresholdController.text) ?? defaultShakeThresholdGravity;
+                    maxSPM = double.tryParse(maxSPMController.text) ?? defaultMaxSPM;
+                    maxSpeed = double.tryParse(maxSpeedController.text) ?? defaultMaxSpeed;
+                    maxDistance = double.tryParse(maxDistanceController.text) ?? defaultMaxDistance;
 
                     // Recreate the ShakeDetector with the new threshold
                     shakeDetector?.stopListening();

@@ -10,6 +10,15 @@ class TextStyles {
   static TextStyle largeMediumText = TextStyle(fontSize: 40, fontWeight: FontWeight.w600);
   static TextStyle titleText = TextStyle(fontSize: 20, fontWeight: FontWeight.w500);
   static TextStyle labelText = TextStyle(fontSize: 16, fontWeight: FontWeight.w500);
-  static TextStyle buttonText = TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: secondaryColor);
+  static TextStyle buttonText = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    color: secondaryColor,
+  );
   static const TextStyle dialogTitle = TextStyle(fontSize: 18, fontWeight: FontWeight.w700);
 }
+
+double defaultShakeThresholdGravity = 1.08;
+double defaultMaxSPM = 120;
+double defaultMaxSpeed = 16.5;
+double defaultMaxDistance = 5;
