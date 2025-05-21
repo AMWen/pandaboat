@@ -220,12 +220,12 @@ class LogTabState extends State<LogTab> {
                             ),
                           ),
                         ),
-                        SizedBox(width: 160, child: Text('Date', style: TextStyles.labelText)),
-                        SizedBox(width: 8),
+                        SizedBox(width: 150, child: Text('Date', style: TextStyles.labelText)),
+                        SizedBox(width: 4),
                         SizedBox(width: 75, child: Text('Duration', style: TextStyles.labelText)),
-                        SizedBox(width: 8),
+                        SizedBox(width: 4),
                         SizedBox(width: 75, child: Text('Distance', style: TextStyles.labelText)),
-                        SizedBox(width: 8),
+                        SizedBox(width: 4),
                       ],
                     ),
                   ),
@@ -269,10 +269,10 @@ class LogTabState extends State<LogTab> {
                               ),
                             ),
                             SizedBox(
-                              width: 160,
+                              width: 150,
                               child: Text(formatLogId(logId), style: TextStyles.normalText),
                             ),
-                            SizedBox(width: 8),
+                            SizedBox(width: 4),
                             SizedBox(
                               width: 75,
                               child: Text(
@@ -280,7 +280,7 @@ class LogTabState extends State<LogTab> {
                                 style: TextStyles.normalText,
                               ),
                             ),
-                            SizedBox(width: 8),
+                            SizedBox(width: 4),
                             SizedBox(
                               width: 75,
                               child: Text(
@@ -290,7 +290,7 @@ class LogTabState extends State<LogTab> {
                                 style: TextStyles.normalText,
                               ),
                             ),
-                            SizedBox(width: 8),
+                            SizedBox(width: 4),
                           ],
                         ),
                       ),
