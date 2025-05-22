@@ -69,7 +69,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   // ----------------------
   // Accelerometer / Stroke Detection
   // ----------------------
-  late StreamSubscription<AccelerometerEvent> accelSubscription;
+  late StreamSubscription<UserAccelerometerEvent> accelSubscription;
   static const int bufferSize = 50;
   List<double> forwardAccelBuffer = [];
   double lastPeakTime = 0;
@@ -87,7 +87,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     super.initState();
     _initLocation();
 
-    accelSubscription = accelerometerEventStream().listen(onAccelerometerEvent);
+    accelSubscription = userAccelerometerEventStream().listen(onAccelerometerEvent);
     uiUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) => updateUI());
     spmTimer = Timer.periodic(const Duration(seconds: 1), (_) => calculateSPM());
     gpsFlushTimer = Timer.periodic(const Duration(seconds: 5), (_) {
@@ -214,7 +214,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     gpsBuffer.add(gpsEntry.toJson());
   }
 
-  void onAccelerometerEvent(AccelerometerEvent event) {
+  void onAccelerometerEvent(UserAccelerometerEvent event) {
     final now = DateTime.now();
     final t = now.millisecondsSinceEpoch.toDouble();
 
