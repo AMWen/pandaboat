@@ -8,7 +8,6 @@ class GpsData {
   final double lon;
   final double distance;
   final double spm;
-  final double spm2;
   final bool outlier;
 
   GpsData({
@@ -21,7 +20,6 @@ class GpsData {
     required this.lon,
     required this.distance,
     required this.spm,
-    required this.spm2,
     required this.outlier,
   });
 
@@ -36,7 +34,6 @@ class GpsData {
       lon: json['lon'],
       distance: json['distance'] ?? 0.0,
       spm: json['spm'] ?? 0.0,
-      spm2: json['spm2'] ?? 0.0,
       outlier: json['outlier'] ?? false,
     );
   }
@@ -52,7 +49,6 @@ class GpsData {
       'lon': lon,
       'distance': distance,
       'spm': spm,
-      'spm2': spm2,
       'outlier': outlier,
     };
   }
@@ -70,7 +66,6 @@ class GpsData {
       'lon',
       'distance',
       'spm',
-      'spm2',
       'outlier',
     ];
   }
@@ -88,7 +83,6 @@ class GpsData {
       lon.toString(),
       distance.toString(),
       spm.toString(),
-      spm2.toString(),
       outlier.toString(),
     ];
   }
