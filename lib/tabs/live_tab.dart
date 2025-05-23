@@ -73,7 +73,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   static const int bufferSize = 50;
   List<double> forwardAccelBuffer = [];
   double lastPeakTime = 0;
-  late
+
   // ----------------------
   // Logger
   // ----------------------
@@ -87,7 +87,9 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     super.initState();
     _initLocation();
 
-    accelSubscription = userAccelerometerEventStream().listen(onAccelerometerEvent);
+    accelSubscription = userAccelerometerEventStream(
+      samplingPeriod: SensorInterval.uiInterval,
+    ).listen(onAccelerometerEvent);
     uiUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) => updateUI());
     spmTimer = Timer.periodic(const Duration(seconds: 1), (_) => calculateSPM());
     gpsFlushTimer = Timer.periodic(const Duration(seconds: 5), (_) {
@@ -227,7 +229,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     }
 
     // Apply a simple moving average for smoothing
-    List<double> smoothed = _movingAverage(forwardAccelBuffer, windowSize: 5);
+    List<double> smoothed = _movingAverage(forwardAccelBuffer, windowSize: 3);
     if (smoothed.length < 3) return;
 
     // Peak detection logic

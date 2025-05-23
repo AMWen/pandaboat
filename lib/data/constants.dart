@@ -18,9 +18,8 @@ class TextStyles {
   static const TextStyle dialogTitle = TextStyle(fontSize: 18, fontWeight: FontWeight.w700);
 }
 
-double defaultShakeThresholdGravity = 1.08;
 double defaultMaxSPM = 120;
 double defaultMaxSpeed = 16.5;
 double defaultMaxDistance = 5;
-double defaultBaseThreshold = 0.5;
-double defaultStdDevMult = 1.2;
+double defaultBaseThreshold = 0;
+double defaultStdDevMult = 1.05;
