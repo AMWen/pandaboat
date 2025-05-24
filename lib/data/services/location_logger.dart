@@ -20,6 +20,7 @@ class LocationLogger {
     } else {
       throw ArgumentError('Data must be a Map or List of Maps');
     }
+    saveLog(logId);
   }
 
   Future<void> saveLog(String logId) async {
