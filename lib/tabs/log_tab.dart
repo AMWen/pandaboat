@@ -97,7 +97,14 @@ class LogTabState extends State<LogTab> {
     final gpsData = decoded.map((e) => GpsData.fromJson(e)).toList();
 
     if (!mounted) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => InteractiveMap(gpsData: gpsData)));
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => InteractiveMap(logId: key, gpsData: gpsData)),
+    );
+
+    if (result == 'deleted') {
+      await loadLogs(); // Reload logs after deletion
+    }
   }
 
   Future<void> deleteSelectedLogs() async {

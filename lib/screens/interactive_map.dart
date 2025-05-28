@@ -3,13 +3,15 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../data/models/gps_data.dart';
 import '../data/constants.dart';
+import '../data/services/location_logger.dart';
 import '../utils/line_chart.dart';
 import '../utils/time_format.dart';
 
 class InteractiveMap extends StatelessWidget {
+  final String logId;
   final List<GpsData> gpsData;
 
-  const InteractiveMap({super.key, required this.gpsData});
+  const InteractiveMap({super.key, required this.logId, required this.gpsData});
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +82,40 @@ class InteractiveMap extends StatelessWidget {
         appBar: AppBar(
           toolbarHeight: kToolbarHeight * 0.75,
           title: const Text("Log Analysis"),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.delete),
+              tooltip: "Delete this log",
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder:
+                      (ctx) => AlertDialog(
+                        title: const Text("Delete Log"),
+                        content: const Text("Are you sure you want to delete this log?"),
+                        actions: [
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text("Cancel"),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text("Delete"),
+                          ),
+                        ],
+                      ),
+                );
+
+                if (confirm == true) {
+                  final logger = LocationLogger();
+                  await logger.clearLog(logId);
+                  if (context.mounted) {
+                    Navigator.pop(context, 'deleted'); // Return with a signal
+                  }
+                }
+              },
+            ),
+          ],
           bottom: TabBar(
             dividerHeight: 0,
             labelColor: secondaryColor,
