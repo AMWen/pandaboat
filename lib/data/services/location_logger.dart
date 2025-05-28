@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/gps_data.dart';
 
 class LocationLogger {
   final Map<String, List<Map<String, dynamic>>> _logs = {};
@@ -31,19 +32,26 @@ class LocationLogger {
     }
   }
 
+  Future<Map<String, dynamic>> loadLog(String logId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('log_$logId');
+    if (data == null) return {};
+
+    final decoded = jsonDecode(data) as List<dynamic>;
+    final gpsData = decoded.map((e) => GpsData.fromJson(e)).toList();
+    final name = await getLogName(logId);
+    final log = {'name': name, 'entries': gpsData};
+    return log;
+  }
+
   Future<Map<String, Map<String, dynamic>>> loadAllLogs() async {
     final prefs = await SharedPreferences.getInstance();
     final allKeys = prefs.getKeys().where((k) => k.startsWith('log_'));
 
     Map<String, Map<String, dynamic>> logs = {};
     for (final key in allKeys) {
-      final data = prefs.getString(key);
-      if (data != null) {
-        final decoded = jsonDecode(data) as List<dynamic>;
-        final logId = key.substring(4);
-        final name = await getLogName(logId);
-        logs[logId] = {'name': name, 'entries': decoded.cast<Map<String, dynamic>>()};
-      }
+      final logId = key.substring(4);
+      logs[logId] = await loadLog(logId);
     }
     return logs;
   }

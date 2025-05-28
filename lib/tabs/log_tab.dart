@@ -30,22 +30,19 @@ class LogTabState extends State<LogTab> {
   }
 
   Future<void> downloadSelectedLogs() async {
-    final prefs = await SharedPreferences.getInstance();
     List<List<String>> csvData = [];
 
     for (final logId in selectedLogs) {
-      final raw = prefs.getString('log_$logId');
-      if (raw == null) continue;
-
-      final decoded = jsonDecode(raw) as List<dynamic>;
-      final gpsEntries = decoded.map((e) => GpsData.fromJson(e)).toList();
+      final loaded = await logger.loadLog(logId);
+      final gpsEntries = loaded['entries'];
+      final logName = loaded['name'];
 
       // Add headers
-      csvData.add(GpsData.csvHeaders());
+      csvData.add(['name', ...GpsData.csvHeaders()]);
 
       // Add data rows
       for (final entry in gpsEntries) {
-        csvData.add(entry.toCsvRow(logId));
+        csvData.add([logName ?? '', ...entry.toCsvRow(logId)]);
       }
 
       // Blank line between logs
@@ -89,18 +86,35 @@ class LogTabState extends State<LogTab> {
   }
 
   Future<void> openLog(String key) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('log_$key');
-    if (raw == null) return;
+    final loaded = await logger.loadLog(key);
+    final gpsData = loaded['entries'];
 
-    final decoded = jsonDecode(raw) as List;
-    final gpsData = decoded.map((e) => GpsData.fromJson(e)).toList();
+    final logIds = logs.keys.toList();
+    final currentIndex = logIds.indexOf(key);
 
     if (!mounted) return;
+    // await Navigator.push(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder:
+    //         (_) =>
+    //             InteractiveMap(logIds: logIds, currentIndex: currentIndex, initialGpsData: gpsData),
+    //   ),
+    // );
+
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => InteractiveMap(logId: key, gpsData: gpsData)),
     );
+
+    //     await Navigator.push(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder:
+    //         (_) =>
+    //             InteractiveMap(logIds: logIds, currentIndex: currentIndex, initialGpsData: gpsData),
+    //   ),
+    // );
 
     loadLogs(); // Reload logs for any updates
   }
@@ -229,9 +243,8 @@ class LogTabState extends State<LogTab> {
                   ...logs.entries.map((entry) {
                     final logId = entry.key;
                     final logInfo = entry.value;
-                    final entries = logInfo['entries'] as List<Map<String, dynamic>>;
+                    final entries = logInfo['entries'] as List<GpsData>;
                     final logName = logInfo['name'] as String?;
-                    print(logInfo['name']);
 
                     return GestureDetector(
                       onTap: () => openLog(logId),
@@ -284,7 +297,7 @@ class LogTabState extends State<LogTab> {
                             SizedBox(
                               width: 75,
                               child: Text(
-                                _formatDuration(entries.isNotEmpty ? entries.last['t'] : null),
+                                _formatDuration(entries.isNotEmpty ? entries.last.t : null),
                                 style: TextStyles.normalText,
                               ),
                             ),
@@ -292,9 +305,7 @@ class LogTabState extends State<LogTab> {
                             SizedBox(
                               width: 75,
                               child: Text(
-                                _formatDistance(
-                                  entries.isNotEmpty ? entries.last['distance'] : null,
-                                ),
+                                _formatDistance(entries.isNotEmpty ? entries.last.distance : null),
                                 style: TextStyles.normalText,
                               ),
                             ),
