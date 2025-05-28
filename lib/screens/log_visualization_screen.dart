@@ -23,7 +23,8 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
   late String logId;
   final logger = LocationLogger();
 
-  bool _useInstantValues = false; // false = calculated, true = instant
+  bool _useInstantValues = true; // false = calculated, true = instant
+  bool _useSmoothing = true;
 
   @override
   void initState() {
@@ -78,6 +79,8 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
     final speeds = extractField(gpsData, (e) => e.speed);
     final minSpeed = speeds.reduce((a, b) => a < b ? a : b);
     final maxSpeed = speeds.reduce((a, b) => a > b ? a : b);
+
+    String chartTitle(String base) => '${_useSmoothing ? "Smoothed " : ""}$base';
     List<Map<String, dynamic>> tabsList = [
       {
         FieldNames.name: 'Interactive Map',
@@ -85,11 +88,14 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
         FieldNames.tab: _buildMap(context, minSpeed, maxSpeed),
       },
       {
-        FieldNames.name: 'Speed and SPM vs Distance',
+        FieldNames.name: chartTitle('Speed and SPM vs Distance'),
         FieldNames.icon: Icon(Icons.multiline_chart),
         FieldNames.tab: InteractiveLineChart(
           xData: extractField(gpsData, (e) => e.distance),
-          yData: extractField(gpsData, (e) => _useInstantValues ? e.speed : e.calculatedSpeed),
+          yData: extractField(gpsData, (e) =>
+            _useSmoothing
+                ? (_useInstantValues ? e.smoothed : e.smoothedCalculated)
+                : (_useInstantValues ? e.speed : e.calculatedSpeed)),
           yData2: extractField(gpsData, (e) => e.spm),
           xLabel: "Distance (m)",
           yLabel: "Speed (km/hr)",
@@ -97,41 +103,14 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
         ),
       },
       {
-        FieldNames.name: 'Smoothed Speed and SPM vs Distance',
-        FieldNames.icon: Row(children: [Icon(Icons.multiline_chart), Icon(Icons.iron)]),
-        FieldNames.tab: InteractiveLineChart(
-          xData: extractField(gpsData, (e) => e.distance),
-          yData: extractField(
-            gpsData,
-            (e) => _useInstantValues ? e.smoothed : e.smoothedCalculated,
-          ),
-          yData2: extractField(gpsData, (e) => e.spm),
-          xLabel: "Distance (m)",
-          yLabel: "Speed (km/hr)",
-          yLabel2: "SPM",
-        ),
-      },
-      {
-        FieldNames.name: 'Speed and SPM vs Time',
+        FieldNames.name: chartTitle('Speed and SPM vs Time'),
         FieldNames.icon: Icon(Icons.timer),
         FieldNames.tab: InteractiveLineChart(
           xData: extractField(gpsData, (e) => e.t.toDouble() / 1000),
-          yData: extractField(gpsData, (e) => _useInstantValues ? e.speed : e.calculatedSpeed),
-          yData2: extractField(gpsData, (e) => e.spm),
-          xLabel: "Time (s)",
-          yLabel: "Speed (km/hr)",
-          yLabel2: "SPM",
-        ),
-      },
-      {
-        FieldNames.name: 'Smoothed Speed and SPM vs Time',
-        FieldNames.icon: Row(children: [Icon(Icons.timer), Icon(Icons.iron)]),
-        FieldNames.tab: InteractiveLineChart(
-          xData: extractField(gpsData, (e) => e.t.toDouble() / 1000),
-          yData: extractField(
-            gpsData,
-            (e) => _useInstantValues ? e.smoothed : e.smoothedCalculated,
-          ),
+          yData: extractField(gpsData, (e) =>
+            _useSmoothing
+                ? (_useInstantValues ? e.smoothed : e.smoothedCalculated)
+                : (_useInstantValues ? e.speed : e.calculatedSpeed)),
           yData2: extractField(gpsData, (e) => e.spm),
           xLabel: "Time (s)",
           yLabel: "Speed (km/hr)",
@@ -177,6 +156,15 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
                     ),
                   );
                 }
+              },
+            ),
+            IconButton(
+              icon: Icon(_useSmoothing ? Icons.iron : Icons.iron_outlined),
+              tooltip:_useSmoothing ? 'Smoothed Data' : 'Raw Data',
+              onPressed: () {
+                setState(() {
+                  _useSmoothing = !_useSmoothing;
+                });
               },
             ),
             IconButton(
