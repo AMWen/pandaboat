@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../data/constants.dart';
 import '../data/models/gps_data.dart';
 import '../data/services/location_logger.dart';
-import '../screens/interactive_map.dart';
+import '../screens/log_visualization_screen.dart';
 import '../utils/time_format.dart';
 
 class LogTab extends StatefulWidget {
@@ -59,13 +59,13 @@ class LogTabState extends State<LogTab> {
     //   MaterialPageRoute(
     //     builder:
     //         (_) =>
-    //             InteractiveMap(logIds: logIds, currentIndex: currentIndex, initialGpsData: gpsData),
+    //             LogVisualizationScreen(logIds: logIds, currentIndex: currentIndex, initialGpsData: gpsData),
     //   ),
     // );
 
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => InteractiveMap(logId: key, gpsData: gpsData)),
+      MaterialPageRoute(builder: (_) => LogVisualizationScreen(logId: key, gpsData: gpsData)),
     );
 
     //     await Navigator.push(
@@ -73,7 +73,7 @@ class LogTabState extends State<LogTab> {
     //   MaterialPageRoute(
     //     builder:
     //         (_) =>
-    //             InteractiveMap(logIds: logIds, currentIndex: currentIndex, initialGpsData: gpsData),
+    //             LogVisualizationScreen(logIds: logIds, currentIndex: currentIndex, initialGpsData: gpsData),
     //   ),
     // );
 

@@ -7,17 +7,17 @@ import '../data/services/location_logger.dart';
 import '../utils/line_chart.dart';
 import '../utils/time_format.dart';
 
-class InteractiveMap extends StatefulWidget {
+class LogVisualizationScreen extends StatefulWidget {
   final String logId;
   final List<GpsData> gpsData;
 
-  const InteractiveMap({super.key, required this.logId, required this.gpsData});
+  const LogVisualizationScreen({super.key, required this.logId, required this.gpsData});
 
   @override
-  State<InteractiveMap> createState() => InteractiveMapState();
+  State<LogVisualizationScreen> createState() => LogVisualizationScreenState();
 }
 
-class InteractiveMapState extends State<InteractiveMap> {
+class LogVisualizationScreenState extends State<LogVisualizationScreen> {
   String? logName;
   late List<GpsData> gpsData;
   late String logId;
