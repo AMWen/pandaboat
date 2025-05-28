@@ -26,6 +26,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   double baseThreshold = defaultBaseThreshold;
   double stdDevMult = defaultStdDevMult;
   double maxSPM = defaultMaxSPM;
+  late double minIntervalMs;
   double maxSpeed = defaultMaxSpeed;
   double maxDistance = defaultMaxDistance;
   static const int minUpdateInterval = 200; // ms
@@ -98,6 +99,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
         flushGPSData();
       }
     });
+    minIntervalMs = calcMinIntervalMs(maxSPM);
   }
 
   double calcMinIntervalMs(spm) {
@@ -245,7 +247,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       double timeSinceLastPeak = t - lastPeakTime;
       double dynamicThreshold = _dynamicThreshold(forwardAccelBuffer);
 
-      if (b > max(dynamicThreshold, baseThreshold) && timeSinceLastPeak > calcMinIntervalMs(maxSPM)) {
+      if (b > max(dynamicThreshold, baseThreshold) && timeSinceLastPeak > minIntervalMs) {
         setState(() {
           strokes.add(now);
           strokeCount++;
@@ -256,9 +258,20 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   }
 
   double _dynamicThreshold(List<double> data) {
-    double avg = data.reduce((a, b) => a + b) / data.length;
-    double stddev = sqrt(data.map((d) => pow(d - avg, 2)).reduce((a, b) => a + b) / data.length);
-    return avg + stddev * stdDevMult;
+    if (data.isEmpty) return 0;
+    double median = _median(data);
+    List<double> deviations = data.map((x) => (x - median).abs()).toList();
+    double mad = _median(deviations);
+    return median + mad * stdDevMult;
+  }
+
+  // Median instead of mean, less sensitive to outliers
+  double _median(List<double> data) {
+    int n = data.length;
+    if (n == 0) return 0;
+
+    List<double> sorted = List.from(data)..sort();
+    return (n % 2 == 1) ? sorted[n ~/ 2] : (sorted[n ~/ 2 - 1] + sorted[n ~/ 2]) / 2.0;
   }
 
   void updateUI() {
@@ -397,6 +410,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
                         double.tryParse(baseThresholdController.text) ?? defaultBaseThreshold;
                     stdDevMult = double.tryParse(stdDevMultController.text) ?? defaultStdDevMult;
                     maxSPM = double.tryParse(maxSPMController.text) ?? defaultMaxSPM;
+                    minIntervalMs = calcMinIntervalMs(maxSPM);
                     maxSpeed = double.tryParse(maxSpeedController.text) ?? defaultMaxSpeed;
                     maxDistance = double.tryParse(maxDistanceController.text) ?? defaultMaxDistance;
                   });
