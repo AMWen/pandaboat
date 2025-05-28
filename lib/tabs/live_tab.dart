@@ -70,7 +70,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   // Accelerometer / Stroke Detection
   // ----------------------
   late StreamSubscription<UserAccelerometerEvent> accelSubscription;
-  static const int bufferSize = 50;
+  static const int bufferSize = 25;  // 1.7 seconds
   List<double> forwardAccelBuffer = [];
   double lastPeakTime = 0;
 
@@ -243,7 +243,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       double timeSinceLastPeak = t - lastPeakTime;
       double dynamicThreshold = _dynamicThreshold(smoothed);
 
-      if (b > dynamicThreshold && timeSinceLastPeak > calcMinIntervalMs(maxSPM)) {
+      if (b > max(dynamicThreshold, baseThreshold) && timeSinceLastPeak > calcMinIntervalMs(maxSPM)) {
         setState(() {
           strokes.add(now);
           strokeCount++;
@@ -266,7 +266,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   double _dynamicThreshold(List<double> data) {
     double avg = data.reduce((a, b) => a + b) / data.length;
     double stddev = sqrt(data.map((d) => pow(d - avg, 2)).reduce((a, b) => a + b) / data.length);
-    return avg + stddev * stdDevMult + baseThreshold;
+    return avg + stddev * stdDevMult;
   }
 
   void updateUI() {

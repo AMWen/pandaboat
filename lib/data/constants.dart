@@ -21,5 +21,5 @@ class TextStyles {
 double defaultMaxSPM = 120;
 double defaultMaxSpeed = 16.5;
 double defaultMaxDistance = 5;
-double defaultBaseThreshold = 0;
+double defaultBaseThreshold = 0.1;
 double defaultStdDevMult = 1.05;
