@@ -21,7 +21,7 @@ class TextStyles {
 double defaultMaxSPM = 120;
 double defaultMaxSpeed = 16.5;
 double defaultMaxDistance = 5;
-double defaultBaseThreshold = 0.1;
+double defaultBaseThreshold = 0.45;
 double defaultStdDevMult = 1.05;
 
 String logPrefix = 'log';

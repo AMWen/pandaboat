@@ -221,7 +221,8 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     final now = DateTime.now();
     final t = now.millisecondsSinceEpoch.toDouble();
 
-    double forwardAccel = event.y;
+    // Can be held in hand or lying flat
+    double forwardAccel = max(max(-event.z, event.y), 0);
 
     // Maintain a moving buffer
     completeAccelBuffer.add({'t': t, 'x': event.x, 'y': event.y, 'z': event.z});
@@ -231,19 +232,18 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     }
 
     // Apply a simple moving average for smoothing
-    List<double> smoothed = _movingAverage(forwardAccelBuffer, windowSize: 3);
-    if (smoothed.length < 3) return;
+    if (forwardAccelBuffer.length < 3) return;
 
     // Peak detection logic
-    int last = smoothed.length - 1;
-    double a = smoothed[last - 2];
-    double b = smoothed[last - 1];
-    double c = smoothed[last];
+    int last = forwardAccelBuffer.length - 1;
+    double a = forwardAccelBuffer[last - 2];
+    double b = forwardAccelBuffer[last - 1];
+    double c = forwardAccelBuffer[last];
 
     // Peak (simple local maximum)
     if (b > a && b > c) {
       double timeSinceLastPeak = t - lastPeakTime;
-      double dynamicThreshold = _dynamicThreshold(smoothed);
+      double dynamicThreshold = _dynamicThreshold(forwardAccelBuffer);
 
       if (b > max(dynamicThreshold, baseThreshold) && timeSinceLastPeak > calcMinIntervalMs(maxSPM)) {
         setState(() {
@@ -253,16 +253,6 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
         lastPeakTime = t;
       }
     }
-  }
-
-  List<double> _movingAverage(List<double> data, {int windowSize = 5}) {
-    List<double> result = [];
-    for (int i = 0; i < data.length; i++) {
-      int start = max(0, i - windowSize + 1);
-      double avg = data.sublist(start, i + 1).reduce((a, b) => a + b) / (i - start + 1);
-      result.add(avg);
-    }
-    return result;
   }
 
   double _dynamicThreshold(List<double> data) {
