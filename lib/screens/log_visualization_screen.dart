@@ -89,7 +89,7 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
       },
       {
         FieldNames.name: chartTitle('Speed and SPM vs Distance'),
-        FieldNames.icon: Icon(Icons.multiline_chart),
+        FieldNames.icon: Icon(Icons.route),
         FieldNames.tab: InteractiveLineChart(
           xData: extractField(gpsData, (e) => e.distance),
           yData: extractField(gpsData, (e) =>
@@ -115,6 +115,16 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
           xLabel: "Time (s)",
           yLabel: "Speed (km/hr)",
           yLabel2: "SPM",
+        ),
+      },
+      {
+        FieldNames.name: chartTitle('Distance vs Time'),
+        FieldNames.icon: Icon(Icons.moving),
+        FieldNames.tab: InteractiveLineChart(
+          xData: extractField(gpsData, (e) => e.t.toDouble() / 1000),
+          yData: extractField(gpsData, (e) => e.distance),
+          xLabel: "Time (s)",
+          yLabel: "Distance (m)",
         ),
       },
     ];
