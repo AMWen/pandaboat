@@ -120,8 +120,8 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
   @override
   Widget build(BuildContext context) {
     final speeds = extractField(gpsData, (e) => e.speed);
-    final minSpeed = speeds.reduce((a, b) => a < b ? a : b);
-    final maxSpeed = speeds.reduce((a, b) => a > b ? a : b);
+    final minSpeed = speeds.isEmpty ? 0.0 : speeds.reduce((a, b) => a < b ? a : b);
+    final maxSpeed = speeds.isEmpty ? 0.0 : speeds.reduce((a, b) => a > b ? a : b);
 
     String chartTitle(String base) => '${_useSmoothing ? "Smoothed " : ""}$base';
     List<Map<String, dynamic>> tabsList = [
@@ -208,75 +208,89 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
               ),
             ),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.download),
-                tooltip: "Download this log",
-                onPressed: () async {
-                  final result = await logger.exportLogsToCsv({logId});
+              SizedBox(
+                width: 34,
+                child: IconButton(
+                  icon: const Icon(Icons.download),
+                  tooltip: "Download this log",
+                  onPressed: () async {
+                    final result = await logger.exportLogsToCsv({logId});
 
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          result == null
-                              ? 'Canceled or no valid GPS data found to export.'
-                              : 'Log saved to $result',
-                        ),
-                      ),
-                    );
-                  }
-                },
-              ),
-              IconButton(
-                icon: Icon(_useSmoothing ? Icons.iron : Icons.iron_outlined),
-                tooltip: _useSmoothing ? 'Smoothed Data' : 'Raw Data',
-                onPressed: () {
-                  setState(() {
-                    _useSmoothing = !_useSmoothing;
-                  });
-                },
-              ),
-              IconButton(
-                icon: Icon(_useInstantValues ? Icons.flash_on : Icons.flash_off),
-                tooltip: _useInstantValues ? 'Showing Instant Values' : 'Showing Calculated Values',
-                onPressed: () {
-                  setState(() {
-                    _useInstantValues = !_useInstantValues;
-                  });
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete),
-                tooltip: "Delete this log",
-                onPressed: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder:
-                        (ctx) => AlertDialog(
-                          title: const Text("Delete Log", style: TextStyles.dialogTitle),
-                          content: const Text("Are you sure you want to delete this log?"),
-                          actions: [
-                            FilledButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text("Cancel"),
-                            ),
-                            FilledButton(
-                              style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text("Delete"),
-                            ),
-                          ],
-                        ),
-                  );
-
-                  if (confirm == true) {
-                    await logger.clearLog(logId);
                     if (context.mounted) {
-                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            result == null
+                                ? 'Canceled or no valid GPS data found to export.'
+                                : 'Log saved to $result',
+                          ),
+                        ),
+                      );
                     }
-                  }
-                },
+                  },
+                ),
               ),
+              SizedBox(
+                width: 34,
+                child: IconButton(
+                  icon: Icon(_useSmoothing ? Icons.iron : Icons.iron_outlined),
+                  tooltip: _useSmoothing ? 'Smoothed Data' : 'Raw Data',
+                  onPressed: () {
+                    setState(() {
+                      _useSmoothing = !_useSmoothing;
+                    });
+                  },
+                ),
+              ),
+              SizedBox(
+                width: 34,
+                child: IconButton(
+                  icon: Icon(_useInstantValues ? Icons.flash_on : Icons.flash_off),
+                  tooltip:
+                      _useInstantValues ? 'Showing Instant Values' : 'Showing Calculated Values',
+                  onPressed: () {
+                    setState(() {
+                      _useInstantValues = !_useInstantValues;
+                    });
+                  },
+                ),
+              ),
+              SizedBox(
+                width: 34,
+                child: IconButton(
+                  icon: const Icon(Icons.delete),
+                  tooltip: "Delete this log",
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder:
+                          (ctx) => AlertDialog(
+                            title: const Text("Delete Log", style: TextStyles.dialogTitle),
+                            content: const Text("Are you sure you want to delete this log?"),
+                            actions: [
+                              FilledButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text("Cancel"),
+                              ),
+                              FilledButton(
+                                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text("Delete"),
+                              ),
+                            ],
+                          ),
+                    );
+
+                    if (confirm == true) {
+                      await logger.clearLog(logId);
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    }
+                  },
+                ),
+              ),
+              SizedBox(width: 12),
             ],
             bottom: TabBar(
               dividerHeight: 0,

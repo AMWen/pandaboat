@@ -129,22 +129,31 @@ class LogTabState extends State<LogTab> {
       appBar: AppBar(
         title: const Text("Past Logs"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: selectedLogs.isEmpty ? null : downloadSelectedLogs,
-            tooltip: 'Download selected logs',
+          SizedBox(
+            width: 34,
+            child: IconButton(
+              icon: const Icon(Icons.download),
+              onPressed: selectedLogs.isEmpty ? null : downloadSelectedLogs,
+              tooltip: 'Download selected logs',
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed:
-                selectedLogs.isEmpty
-                    ? null
-                    : () async {
-                      final confirm = await showDeleteLogsDialog(context, selectedLogs.length);
-                      if (confirm == true) {
-                        await deleteSelectedLogs();
-                      }
-                    },
+          SizedBox(
+            width: 34,
+            child: IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed:
+                  selectedLogs.isEmpty
+                      ? null
+                      : () async {
+                        final confirm = await showDeleteLogsDialog(context, selectedLogs.length);
+                        if (confirm == true) {
+                          await deleteSelectedLogs();
+                        }
+                      },
+            ),
+          ),
+          SizedBox(
+            width: 12,
           ),
         ],
       ),
