@@ -49,12 +49,14 @@ class LocationLogger {
   Future<void> clearLog(String logId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('log_$logId');
+    await prefs.remove('name_$logId');
     _logs.remove(logId);
   }
 
   Future<void> clearAllLogs() async {
     final prefs = await SharedPreferences.getInstance();
-    final keysToRemove = prefs.getKeys().where((k) => k.startsWith('log_')).toList();
+    final keysToRemove =
+        prefs.getKeys().where((k) => k.startsWith('log_') || k.startsWith('name_')).toList();
     for (final key in keysToRemove) {
       await prefs.remove(key);
     }

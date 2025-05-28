@@ -227,17 +227,19 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
                 onChanged: (val) {
                   setState(() => _showPrimarySeries = val ?? true);
                 },
+                visualDensity: VisualDensity(horizontal: -2, vertical: -2),
               ),
               const Text('Primary Series'),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Checkbox(
                 value: _showSecondarySeries,
                 onChanged: (val) {
                   setState(() => _showSecondarySeries = val ?? true);
                 },
+                visualDensity: VisualDensity(horizontal: -2, vertical: -2),
               ),
               const Text('Secondary Series'),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               GestureDetector(
                 onTap: _showChartSettingsDialog,
                 child: const Padding(
