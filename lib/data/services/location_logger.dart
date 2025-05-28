@@ -60,4 +60,14 @@ class LocationLogger {
     }
     _logs.clear();
   }
+
+  Future<void> saveLogName(String logId, String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('log_${logId}_name', name);
+  }
+
+  Future<String?> getLogName(String logId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('log_${logId}_name');
+  }
 }

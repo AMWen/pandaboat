@@ -7,11 +7,69 @@ import '../data/services/location_logger.dart';
 import '../utils/line_chart.dart';
 import '../utils/time_format.dart';
 
-class InteractiveMap extends StatelessWidget {
+class InteractiveMap extends StatefulWidget {
   final String logId;
   final List<GpsData> gpsData;
 
   const InteractiveMap({super.key, required this.logId, required this.gpsData});
+
+  @override
+  State<InteractiveMap> createState() => InteractiveMapState();
+}
+
+class InteractiveMapState extends State<InteractiveMap> {
+  String? logName;
+  late List<GpsData> gpsData;
+  late String logId;
+  final logger = LocationLogger();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLogName();
+    gpsData = widget.gpsData;
+    logId = widget.logId;
+  }
+
+  Future<void> _loadLogName() async {
+    final name = await logger.getLogName(widget.logId);
+    setState(() {
+      logName = name;
+    });
+  }
+
+  Future<void> _editLogName() async {
+    final controller = TextEditingController(text: logName ?? '');
+
+    final newName = await showDialog<String>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Edit Log Name'),
+            content: TextField(
+              controller: controller,
+              decoration: const InputDecoration(hintText: 'Enter a name'),
+              keyboardType: TextInputType.multiline,
+              maxLines: null,
+              autofocus: true,
+            ),
+            actions: [
+              FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+    );
+
+    if (newName != null && newName.isNotEmpty) {
+      await logger.saveLogName(widget.logId, newName);
+      setState(() {
+        logName = newName;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +139,18 @@ class InteractiveMap extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           toolbarHeight: kToolbarHeight * 0.75,
-          title: const Text("Log Analysis"),
+          title: GestureDetector(
+            onTap: _editLogName,
+            child: Text(
+              logName?.isNotEmpty == true ? logName! : 'Log Analysis',
+              overflow: TextOverflow.visible,
+              softWrap: true,
+              style:
+                  (logName?.length ?? 0) < 25 && !logName!.contains('\n')
+                      ? Theme.of(context).textTheme.titleLarge
+                      : Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
           actions: [
             IconButton(
               icon: const Icon(Icons.delete),
