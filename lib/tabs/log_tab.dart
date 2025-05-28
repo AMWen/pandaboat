@@ -20,7 +20,7 @@ class LogTab extends StatefulWidget {
 
 class LogTabState extends State<LogTab> {
   final logger = LocationLogger();
-  Map<String, List<Map<String, dynamic>>> logs = {};
+  Map<String, Map<String, dynamic>> logs = {};
   Set<String> selectedLogs = {};
 
   @override
@@ -97,14 +97,12 @@ class LogTabState extends State<LogTab> {
     final gpsData = decoded.map((e) => GpsData.fromJson(e)).toList();
 
     if (!mounted) return;
-    final result = await Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => InteractiveMap(logId: key, gpsData: gpsData)),
     );
 
-    if (result == 'deleted') {
-      await loadLogs(); // Reload logs after deletion
-    }
+    loadLogs(); // Reload logs for any updates
   }
 
   Future<void> deleteSelectedLogs() async {
@@ -230,7 +228,11 @@ class LogTabState extends State<LogTab> {
                   ),
                   ...logs.entries.map((entry) {
                     final logId = entry.key;
-                    final entries = entry.value;
+                    final logInfo = entry.value;
+                    final entries = logInfo['entries'] as List<Map<String, dynamic>>;
+                    final logName = logInfo['name'] as String?;
+                    print(logInfo['name']);
+
                     return GestureDetector(
                       onTap: () => openLog(logId),
                       child: ListTile(
@@ -269,7 +271,14 @@ class LogTabState extends State<LogTab> {
                             ),
                             SizedBox(
                               width: 150,
-                              child: Text(formatLogId(logId), style: TextStyles.normalText),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(formatLogId(logId), style: TextStyles.normalText),
+                                  if (logName != null && logName.trim().isNotEmpty)
+                                    Text(logName, style: Theme.of(context).textTheme.bodySmall),
+                                ],
+                              ),
                             ),
                             SizedBox(width: 4),
                             SizedBox(

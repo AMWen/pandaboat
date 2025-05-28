@@ -31,16 +31,18 @@ class LocationLogger {
     }
   }
 
-  Future<Map<String, List<Map<String, dynamic>>>> loadAllLogs() async {
+  Future<Map<String, Map<String, dynamic>>> loadAllLogs() async {
     final prefs = await SharedPreferences.getInstance();
     final allKeys = prefs.getKeys().where((k) => k.startsWith('log_'));
 
-    Map<String, List<Map<String, dynamic>>> logs = {};
+    Map<String, Map<String, dynamic>> logs = {};
     for (final key in allKeys) {
       final data = prefs.getString(key);
       if (data != null) {
         final decoded = jsonDecode(data) as List<dynamic>;
-        logs[key.substring(4)] = decoded.cast<Map<String, dynamic>>();
+        final logId = key.substring(4);
+        final name = await getLogName(logId);
+        logs[logId] = {'name': name, 'entries': decoded.cast<Map<String, dynamic>>()};
       }
     }
     return logs;

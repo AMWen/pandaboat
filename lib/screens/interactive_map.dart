@@ -180,7 +180,7 @@ class InteractiveMapState extends State<InteractiveMap> {
                   final logger = LocationLogger();
                   await logger.clearLog(logId);
                   if (context.mounted) {
-                    Navigator.pop(context, 'deleted'); // Return with a signal
+                    Navigator.pop(context);
                   }
                 }
               },
