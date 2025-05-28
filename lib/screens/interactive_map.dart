@@ -23,6 +23,8 @@ class InteractiveMapState extends State<InteractiveMap> {
   late String logId;
   final logger = LocationLogger();
 
+  bool _useInstantValues = false; // false = calculated, true = instant
+
   @override
   void initState() {
     super.initState();
@@ -76,7 +78,7 @@ class InteractiveMapState extends State<InteractiveMap> {
     final speeds = extractField(gpsData, (e) => e.speed);
     final minSpeed = speeds.reduce((a, b) => a < b ? a : b);
     final maxSpeed = speeds.reduce((a, b) => a > b ? a : b);
-    final List<Map<String, dynamic>> tabsList = [
+    List<Map<String, dynamic>> tabsList = [
       {
         'name': 'Interactive Map',
         'icon': Icon(Icons.map),
@@ -87,7 +89,7 @@ class InteractiveMapState extends State<InteractiveMap> {
         'icon': Icon(Icons.multiline_chart),
         'tab': InteractiveLineChart(
           xData: extractField(gpsData, (e) => e.distance),
-          yData: extractField(gpsData, (e) => e.calculatedSpeed),
+          yData: extractField(gpsData, (e) => _useInstantValues ? e.speed : e.calculatedSpeed),
           yData2: extractField(gpsData, (e) => e.spm),
           xLabel: "Distance (m)",
           yLabel: "Speed (km/hr)",
@@ -99,7 +101,10 @@ class InteractiveMapState extends State<InteractiveMap> {
         'icon': Row(children: [Icon(Icons.multiline_chart), Icon(Icons.iron)]),
         'tab': InteractiveLineChart(
           xData: extractField(gpsData, (e) => e.distance),
-          yData: extractField(gpsData, (e) => e.smoothedCalculated),
+          yData: extractField(
+            gpsData,
+            (e) => _useInstantValues ? e.smoothed : e.smoothedCalculated,
+          ),
           yData2: extractField(gpsData, (e) => e.spm),
           xLabel: "Distance (m)",
           yLabel: "Speed (km/hr)",
@@ -111,7 +116,7 @@ class InteractiveMapState extends State<InteractiveMap> {
         'icon': Icon(Icons.timer),
         'tab': InteractiveLineChart(
           xData: extractField(gpsData, (e) => e.t.toDouble() / 1000),
-          yData: extractField(gpsData, (e) => e.calculatedSpeed),
+          yData: extractField(gpsData, (e) => _useInstantValues ? e.speed : e.calculatedSpeed),
           yData2: extractField(gpsData, (e) => e.spm),
           xLabel: "Time (s)",
           yLabel: "Speed (km/hr)",
@@ -123,7 +128,10 @@ class InteractiveMapState extends State<InteractiveMap> {
         'icon': Row(children: [Icon(Icons.timer), Icon(Icons.iron)]),
         'tab': InteractiveLineChart(
           xData: extractField(gpsData, (e) => e.t.toDouble() / 1000),
-          yData: extractField(gpsData, (e) => e.smoothedCalculated),
+          yData: extractField(
+            gpsData,
+            (e) => _useInstantValues ? e.smoothed : e.smoothedCalculated,
+          ),
           yData2: extractField(gpsData, (e) => e.spm),
           xLabel: "Time (s)",
           yLabel: "Speed (km/hr)",
@@ -152,6 +160,15 @@ class InteractiveMapState extends State<InteractiveMap> {
             ),
           ),
           actions: [
+            IconButton(
+              icon: Icon(_useInstantValues ? Icons.flash_on : Icons.flash_off),
+              tooltip: _useInstantValues ? 'Showing Instant Values' : 'Showing Calculated Values',
+              onPressed: () {
+                setState(() {
+                  _useInstantValues = !_useInstantValues;
+                });
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.delete),
               tooltip: "Delete this log",
