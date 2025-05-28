@@ -8,34 +8,77 @@ import '../utils/line_chart.dart';
 import '../utils/time_format.dart';
 
 class LogVisualizationScreen extends StatefulWidget {
-  final String logId;
-  final List<GpsData> gpsData;
+  final List<String> logIds;
+  final int currentIndex;
+  final List<GpsData> initialGpsData;
+  final String? logId;
 
-  const LogVisualizationScreen({super.key, required this.logId, required this.gpsData});
+  const LogVisualizationScreen({
+    super.key,
+    required this.logIds,
+    required this.currentIndex,
+    required this.initialGpsData,
+    this.logId,
+  });
 
   @override
-  State<LogVisualizationScreen> createState() => LogVisualizationScreenState();
+  LogVisualizationScreenState createState() => LogVisualizationScreenState();
 }
 
 class LogVisualizationScreenState extends State<LogVisualizationScreen> {
-  String? logName;
-  late List<GpsData> gpsData;
+  late List<String> logIds;
+  late int currentIndex;
+  List<GpsData> gpsData = [];
   late String logId;
+
+  String? logName;
   final logger = LocationLogger();
 
-  bool _useInstantValues = true; // false = calculated, true = instant
+  bool _useInstantValues = true; // false = calculated
   bool _useSmoothing = true;
 
   @override
   void initState() {
     super.initState();
+    setState(() {
+      logIds = widget.logIds;
+      currentIndex = widget.currentIndex;
+      gpsData = widget.initialGpsData;
+      logId = logIds[currentIndex];
+    });
     _loadLogName();
-    gpsData = widget.gpsData;
-    logId = widget.logId;
+    super.initState();
+  }
+
+  Future<void> loadLog(int index) async {
+    final loaded = await logger.loadLog(logIds[index]);
+
+    setState(() {
+      currentIndex = index;
+      gpsData = loaded[FieldNames.entries];
+      logName = loaded[FieldNames.name];
+      logId = logIds[index];
+    });
+  }
+
+  void onSwipeLeft() {
+    if (currentIndex < widget.logIds.length - 1) {
+      loadLog(currentIndex + 1);
+    } else if (currentIndex == widget.logIds.length - 1) {
+      loadLog(0);
+    }
+  }
+
+  void onSwipeRight() {
+    if (currentIndex > 0) {
+      loadLog(currentIndex - 1);
+    } else if (currentIndex == 0) {
+      loadLog(widget.logIds.length - 1);
+    }
   }
 
   Future<void> _loadLogName() async {
-    final name = await logger.getLogName(widget.logId);
+    final name = await logger.getLogName(logId);
     setState(() {
       logName = name;
     });
@@ -67,7 +110,7 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
     );
 
     if (newName != null) {
-      await logger.saveLogName(widget.logId, newName);
+      await logger.saveLogName(logId, newName);
       setState(() {
         logName = newName;
       });
@@ -92,10 +135,13 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
         FieldNames.icon: Icon(Icons.route),
         FieldNames.tab: InteractiveLineChart(
           xData: extractField(gpsData, (e) => e.distance),
-          yData: extractField(gpsData, (e) =>
-            _useSmoothing
-                ? (_useInstantValues ? e.smoothed : e.smoothedCalculated)
-                : (_useInstantValues ? e.speed : e.calculatedSpeed)),
+          yData: extractField(
+            gpsData,
+            (e) =>
+                _useSmoothing
+                    ? (_useInstantValues ? e.smoothed : e.smoothedCalculated)
+                    : (_useInstantValues ? e.speed : e.calculatedSpeed),
+          ),
           yData2: extractField(gpsData, (e) => e.spm),
           xLabel: "Distance (m)",
           yLabel: "Speed (km/hr)",
@@ -107,10 +153,13 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
         FieldNames.icon: Icon(Icons.timer),
         FieldNames.tab: InteractiveLineChart(
           xData: extractField(gpsData, (e) => e.t.toDouble() / 1000),
-          yData: extractField(gpsData, (e) =>
-            _useSmoothing
-                ? (_useInstantValues ? e.smoothed : e.smoothedCalculated)
-                : (_useInstantValues ? e.speed : e.calculatedSpeed)),
+          yData: extractField(
+            gpsData,
+            (e) =>
+                _useSmoothing
+                    ? (_useInstantValues ? e.smoothed : e.smoothedCalculated)
+                    : (_useInstantValues ? e.speed : e.calculatedSpeed),
+          ),
           yData2: extractField(gpsData, (e) => e.spm),
           xLabel: "Time (s)",
           yLabel: "Speed (km/hr)",
@@ -131,107 +180,123 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
     final List<Widget> tabWidgets =
         tabsList.map<Widget>((entry) => entry['tab'] as Widget).toList();
 
-    return DefaultTabController(
-      length: tabsList.length,
-      child: Scaffold(
-        appBar: AppBar(
-          toolbarHeight: kToolbarHeight * 0.75,
-          title: GestureDetector(
-            onTap: _editLogName,
-            child: Text(
-              logName?.isNotEmpty == true ? logName! : 'Log Analysis',
-              overflow: TextOverflow.visible,
-              softWrap: true,
-              style:
-                  (logName?.length ?? 0) < 25 && (logName == null || !logName!.contains('\n'))
-                      ? Theme.of(context).appBarTheme.titleTextStyle
-                      : Theme.of(context).appBarTheme.titleTextStyle?.copyWith(fontSize: 16)
-            ),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.download),
-              tooltip: "Download this log",
-              onPressed: () async {
-                final result = await logger.exportLogsToCsv({logId});
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        if (details.primaryVelocity == null) return;
 
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        result == null
-                            ? 'Canceled or no valid GPS data found to export.'
-                            : 'Log saved to $result',
-                      ),
-                    ),
-                  );
-                }
-              },
+        if (details.primaryVelocity! < 0) {
+          onSwipeLeft();
+        } else if (details.primaryVelocity! > 0) {
+          onSwipeRight();
+        }
+      },
+      child: DefaultTabController(
+        length: tabsList.length,
+        child: Scaffold(
+          appBar: AppBar(
+            toolbarHeight: kToolbarHeight * 0.75,
+            title: GestureDetector(
+              onTap: _editLogName,
+              child: Text(
+                logName?.isNotEmpty == true ? logName! : 'Log Analysis',
+                overflow: TextOverflow.visible,
+                softWrap: true,
+                style:
+                    (logName?.length ?? 0) < 25 && (logName == null || !logName!.contains('\n'))
+                        ? Theme.of(context).appBarTheme.titleTextStyle
+                        : Theme.of(context).appBarTheme.titleTextStyle?.copyWith(fontSize: 16),
+              ),
             ),
-            IconButton(
-              icon: Icon(_useSmoothing ? Icons.iron : Icons.iron_outlined),
-              tooltip:_useSmoothing ? 'Smoothed Data' : 'Raw Data',
-              onPressed: () {
-                setState(() {
-                  _useSmoothing = !_useSmoothing;
-                });
-              },
-            ),
-            IconButton(
-              icon: Icon(_useInstantValues ? Icons.flash_on : Icons.flash_off),
-              tooltip: _useInstantValues ? 'Showing Instant Values' : 'Showing Calculated Values',
-              onPressed: () {
-                setState(() {
-                  _useInstantValues = !_useInstantValues;
-                });
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete),
-              tooltip: "Delete this log",
-              onPressed: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder:
-                      (ctx) => AlertDialog(
-                        title: const Text("Delete Log", style: TextStyles.dialogTitle),
-                        content: const Text("Are you sure you want to delete this log?"),
-                        actions: [
-                          FilledButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text("Cancel"),
-                          ),
-                          FilledButton(
-                            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text("Delete"),
-                          ),
-                        ],
-                      ),
-                );
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.download),
+                tooltip: "Download this log",
+                onPressed: () async {
+                  final result = await logger.exportLogsToCsv({logId});
 
-                if (confirm == true) {
-                  await logger.clearLog(logId);
                   if (context.mounted) {
-                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          result == null
+                              ? 'Canceled or no valid GPS data found to export.'
+                              : 'Log saved to $result',
+                        ),
+                      ),
+                    );
                   }
-                }
-              },
+                },
+              ),
+              IconButton(
+                icon: Icon(_useSmoothing ? Icons.iron : Icons.iron_outlined),
+                tooltip: _useSmoothing ? 'Smoothed Data' : 'Raw Data',
+                onPressed: () {
+                  setState(() {
+                    _useSmoothing = !_useSmoothing;
+                  });
+                },
+              ),
+              IconButton(
+                icon: Icon(_useInstantValues ? Icons.flash_on : Icons.flash_off),
+                tooltip: _useInstantValues ? 'Showing Instant Values' : 'Showing Calculated Values',
+                onPressed: () {
+                  setState(() {
+                    _useInstantValues = !_useInstantValues;
+                  });
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete),
+                tooltip: "Delete this log",
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder:
+                        (ctx) => AlertDialog(
+                          title: const Text("Delete Log", style: TextStyles.dialogTitle),
+                          content: const Text("Are you sure you want to delete this log?"),
+                          actions: [
+                            FilledButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text("Cancel"),
+                            ),
+                            FilledButton(
+                              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text("Delete"),
+                            ),
+                          ],
+                        ),
+                  );
+
+                  if (confirm == true) {
+                    await logger.clearLog(logId);
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  }
+                },
+              ),
+            ],
+            bottom: TabBar(
+              dividerHeight: 0,
+              labelColor: secondaryColor,
+              unselectedLabelColor: dullColor,
+              tabs:
+                  tabsList
+                      .map(
+                        (entry) => Tab(
+                          icon: Tooltip(
+                            message: entry[FieldNames.name],
+                            child: entry[FieldNames.icon],
+                          ),
+                        ),
+                      )
+                      .toList(),
             ),
-          ],
-          bottom: TabBar(
-            dividerHeight: 0,
-            labelColor: secondaryColor,
-            unselectedLabelColor: dullColor,
-            tabs:
-                tabsList
-                    .map(
-                      (entry) => Tab(icon: Tooltip(message: entry[FieldNames.name], child: entry[FieldNames.icon])),
-                    )
-                    .toList(),
           ),
+          body: TabBarView(children: tabWidgets),
         ),
-        body: TabBarView(children: tabWidgets),
       ),
     );
   }

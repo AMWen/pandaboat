@@ -54,28 +54,18 @@ class LogTabState extends State<LogTab> {
     final currentIndex = logIds.indexOf(key);
 
     if (!mounted) return;
-    // await Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder:
-    //         (_) =>
-    //             LogVisualizationScreen(logIds: logIds, currentIndex: currentIndex, initialGpsData: gpsData),
-    //   ),
-    // );
 
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => LogVisualizationScreen(logId: key, gpsData: gpsData)),
+      MaterialPageRoute(
+        builder:
+            (_) => LogVisualizationScreen(
+              logIds: logIds,
+              currentIndex: currentIndex,
+              initialGpsData: gpsData,
+            ),
+      ),
     );
-
-    //     await Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder:
-    //         (_) =>
-    //             LogVisualizationScreen(logIds: logIds, currentIndex: currentIndex, initialGpsData: gpsData),
-    //   ),
-    // );
 
     loadLogs(); // Reload logs for any updates
   }
@@ -266,7 +256,9 @@ class LogTabState extends State<LogTab> {
                             SizedBox(
                               width: 75,
                               child: Text(
-                                _formatDistance(gpsEntries.isNotEmpty ? gpsEntries.last.distance : null),
+                                _formatDistance(
+                                  gpsEntries.isNotEmpty ? gpsEntries.last.distance : null,
+                                ),
                                 style: TextStyles.normalText,
                               ),
                             ),
