@@ -63,7 +63,7 @@ class InteractiveMapState extends State<InteractiveMap> {
           ),
     );
 
-    if (newName != null && newName.isNotEmpty) {
+    if (newName != null) {
       await logger.saveLogName(widget.logId, newName);
       setState(() {
         logName = newName;
