@@ -161,6 +161,25 @@ class InteractiveMapState extends State<InteractiveMap> {
           ),
           actions: [
             IconButton(
+              icon: const Icon(Icons.download),
+              tooltip: "Download this log",
+              onPressed: () async {
+                final result = await logger.exportLogsToCsv({logId});
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        result == null
+                            ? 'No valid GPS data found to export.'
+                            : 'Log saved to $result',
+                      ),
+                    ),
+                  );
+                }
+              },
+            ),
+            IconButton(
               icon: Icon(_useInstantValues ? Icons.flash_on : Icons.flash_off),
               tooltip: _useInstantValues ? 'Showing Instant Values' : 'Showing Calculated Values',
               onPressed: () {
@@ -194,7 +213,6 @@ class InteractiveMapState extends State<InteractiveMap> {
                 );
 
                 if (confirm == true) {
-                  final logger = LocationLogger();
                   await logger.clearLog(logId);
                   if (context.mounted) {
                     Navigator.pop(context);
