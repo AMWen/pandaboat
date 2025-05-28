@@ -51,6 +51,7 @@ class InteractiveLineChart extends StatefulWidget {
 }
 
 class _InteractiveLineChartState extends State<InteractiveLineChart> {
+  double? _xOffset;
   double? _minXOverride;
   double? _maxXOverride;
   double? _minYOverride;
@@ -65,6 +66,7 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
   bool _showSecondarySeries = true;
 
   Future<void> _showChartSettingsDialog() async {
+    final xOffsetCtrl = TextEditingController(text: _xOffset?.toString() ?? '');
     final xMinCtrl = TextEditingController(text: _minXOverride?.toString() ?? '');
     final xMaxCtrl = TextEditingController(text: _maxXOverride?.toString() ?? '');
     final yMinCtrl = TextEditingController(text: _minYOverride?.toString() ?? '');
@@ -97,6 +99,7 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
                       _minY2Override = null;
                       _maxY2Override = null;
                       _intervalY2Override = null;
+                      _xOffset = null;
                     });
                     Navigator.pop(ctx);
                   },
@@ -107,6 +110,8 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  _buildNumberField("X Offset", xOffsetCtrl),
+                  const Divider(),
                   _buildNumberField("Min X", xMinCtrl),
                   _buildNumberField("Max X", xMaxCtrl),
                   _buildNumberField("Interval X", xIntCtrl),
@@ -127,6 +132,7 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
                 style: FilledButton.styleFrom(backgroundColor: Colors.green),
                 onPressed: () {
                   setState(() {
+                    _xOffset = double.tryParse(xOffsetCtrl.text);
                     _minXOverride = double.tryParse(xMinCtrl.text);
                     _maxXOverride = double.tryParse(xMaxCtrl.text);
                     _intervalXOverride = int.tryParse(xIntCtrl.text);
@@ -161,6 +167,11 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
 
   @override
   Widget build(BuildContext context) {
+    final adjustedXData =
+        _xOffset != null
+            ? widget.xData.map((x) => x - _xOffset!).toList()
+            : widget.xData;
+    
     final double minX = _minXOverride ?? 0;
     final double maxX = _maxXOverride ?? widget.xData.reduce(max);
 
@@ -173,14 +184,14 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
 
     final spots = List.generate(
       widget.xData.length,
-      (i) => ChartData(widget.xData[i], widget.yData[i]),
+      (i) => ChartData(adjustedXData[i], widget.yData[i]),
     );
 
     final spots2 =
         widget.yData2 != null
             ? List.generate(
               widget.xData.length,
-              (i) => ChartData(widget.xData[i], widget.yData2![i]),
+              (i) => ChartData(adjustedXData[i], widget.yData2![i]),
             )
             : null;
 
@@ -199,11 +210,11 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
               {'else': 500},
             ];
     final int? intervalX =
-        _intervalXOverride ?? calculateRoundedInterval(widget.xData, maxX / 5, intervals);
+        _intervalXOverride ?? calculateRoundedInterval(adjustedXData, (maxX - minX) / 5, intervals);
 
     final int? intervalY =
         _intervalYOverride ??
-        calculateRoundedInterval(widget.yData, maxY / 10, [
+        calculateRoundedInterval(widget.yData, (maxY - minY) / 10, [
           {5: 1},
           {'else': 5},
         ]);
@@ -211,7 +222,7 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
     final int? intervalY2 =
         _intervalY2Override ??
         (widget.yData2 != null
-            ? calculateRoundedInterval(widget.yData2!, maxY2 / 10, [
+            ? calculateRoundedInterval(widget.yData2!, (maxY2 - minY2) / 10, [
               {5: 1},
               {'else': 5},
             ])
@@ -219,8 +230,8 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
 
     return Column(
       children: [
-        if (spots2 != null)
-          Row(
+        spots2 != null
+          ? Row(
             children: [
               Checkbox(
                 value: _showPrimarySeries,
@@ -248,6 +259,13 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
                 ),
               ),
             ],
+          )
+          : GestureDetector(
+            onTap: _showChartSettingsDialog,
+            child: const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Icon(Icons.settings, size: 24),
+            ),
           ),
         Expanded(
           child: SfCartesianChart(
