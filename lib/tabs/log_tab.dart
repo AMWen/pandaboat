@@ -1,10 +1,4 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:csv/csv.dart';
 import '../data/constants.dart';
 import '../data/models/gps_data.dart';
 import '../data/services/location_logger.dart';
@@ -30,48 +24,15 @@ class LogTabState extends State<LogTab> {
   }
 
   Future<void> downloadSelectedLogs() async {
-    List<List<String>> csvData = [];
+    final result = await logger.exportLogsToCsv(selectedLogs);
 
-    for (final logId in selectedLogs) {
-      final loaded = await logger.loadLog(logId);
-      final gpsEntries = loaded['entries'];
-      final logName = loaded['name'];
+    if (!mounted) return;
 
-      // Add headers
-      csvData.add(['name', ...GpsData.csvHeaders()]);
-
-      // Add data rows
-      for (final entry in gpsEntries) {
-        csvData.add([logName ?? '', ...entry.toCsvRow(logId)]);
-      }
-
-      // Blank line between logs
-      csvData.add([]);
-    }
-
-    if (mounted && csvData.isEmpty) {
+    if (result == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('No valid GPS data found to export.')));
-      return;
-    }
-
-    final csvString = const ListToCsvConverter().convert(csvData);
-    final fileName = 'selected_logs_${DateTime.now().millisecondsSinceEpoch}.csv';
-
-    final result = await FilePicker.platform.saveFile(
-      dialogTitle: 'Save selected logs as CSV',
-      fileName: fileName,
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
-      bytes: Uint8List.fromList(utf8.encode(csvString)),
-    );
-
-    if (result == null) {
-      return; // User cancelled
-    }
-
-    if (mounted) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Logs saved to $result')));
     }
   }

@@ -1,4 +1,7 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:csv/csv.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/gps_data.dart';
 
@@ -81,5 +84,45 @@ class LocationLogger {
   Future<String?> getLogName(String logId) async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('name_$logId');
+  }
+
+  Future<String?> exportLogsToCsv(Set<String> selectedLogs) async {
+    List<List<String>> csvData = [];
+
+    for (final logId in selectedLogs) {
+      final loaded = await loadLog(logId);
+      final gpsEntries = loaded['entries'] as List<GpsData>?;
+      final logName = loaded['name'] as String?;
+
+      if (gpsEntries == null || gpsEntries.isEmpty) continue;
+
+      // Add headers
+      csvData.add(['name', ...GpsData.csvHeaders()]);
+
+      // Add data rows
+      for (final entry in gpsEntries) {
+        csvData.add([logName ?? '', ...entry.toCsvRow(logId)]);
+      }
+
+      // Blank line between logs
+      csvData.add([]);
+    }
+
+    if (csvData.isEmpty) {
+      return null;
+    }
+
+    final csvString = const ListToCsvConverter().convert(csvData);
+    final fileName = 'selected_logs_${DateTime.now().millisecondsSinceEpoch}.csv';
+
+    final result = await FilePicker.platform.saveFile(
+      dialogTitle: 'Save selected logs as CSV',
+      fileName: fileName,
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+      bytes: Uint8List.fromList(utf8.encode(csvString)),
+    );
+
+    return result;
   }
 }
