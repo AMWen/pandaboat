@@ -383,7 +383,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Settings'),
+            title: const Text('Settings', style: TextStyles.dialogTitle),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -395,8 +395,8 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-              ElevatedButton(
+              FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+              FilledButton(
                 onPressed: () {
                   setState(() {
                     baseThreshold =

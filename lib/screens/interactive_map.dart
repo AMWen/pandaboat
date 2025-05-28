@@ -45,7 +45,7 @@ class InteractiveMapState extends State<InteractiveMap> {
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: const Text('Edit Log Name'),
+            title: const Text('Edit Log Name', style: TextStyles.dialogTitle),
             content: TextField(
               controller: controller,
               decoration: const InputDecoration(hintText: 'Enter a name'),
@@ -146,7 +146,7 @@ class InteractiveMapState extends State<InteractiveMap> {
               overflow: TextOverflow.visible,
               softWrap: true,
               style:
-                  (logName?.length ?? 0) < 25 && !logName!.contains('\n')
+                  (logName?.length ?? 0) < 25 && (logName == null || !logName!.contains('\n'))
                       ? Theme.of(context).textTheme.titleLarge
                       : Theme.of(context).textTheme.titleMedium,
             ),
@@ -160,7 +160,7 @@ class InteractiveMapState extends State<InteractiveMap> {
                   context: context,
                   builder:
                       (ctx) => AlertDialog(
-                        title: const Text("Delete Log"),
+                        title: const Text("Delete Log", style: TextStyles.dialogTitle),
                         content: const Text("Are you sure you want to delete this log?"),
                         actions: [
                           FilledButton(
@@ -168,6 +168,7 @@ class InteractiveMapState extends State<InteractiveMap> {
                             child: const Text("Cancel"),
                           ),
                           FilledButton(
+                            style: FilledButton.styleFrom(backgroundColor: Colors.red),
                             onPressed: () => Navigator.pop(ctx, true),
                             child: const Text("Delete"),
                           ),

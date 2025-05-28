@@ -122,11 +122,12 @@ class LogTabState extends State<LogTab> {
             title: const Text('Delete Logs', style: TextStyles.dialogTitle),
             content: Text('Are you sure you want to delete $logCount log(s)?'),
             actions: [
-              TextButton(
+              FilledButton(
                 onPressed: () => Navigator.pop(ctx, false),
                 child: Text('Cancel', style: TextStyles.buttonText),
               ),
-              TextButton(
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
                 onPressed: () => Navigator.pop(ctx, true),
                 child: Text('Delete', style: TextStyles.buttonText),
               ),
