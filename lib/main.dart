@@ -55,8 +55,15 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final _pageController = PageController();
+  bool _isRecording = false;
 
-  final _tabs = [LiveTab(), LogTab()];
+  late List<Widget> _tabs;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = [LiveTab(onRecordingChanged: setRecording), LogTab()];
+  }
 
   void _onPageChanged(int index) {
     setState(() {
@@ -65,11 +72,19 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onItemTapped(int index) {
+    if (_isRecording) return; // Ignore taps during recording
+
     _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
+  }
+
+  void setRecording(bool recording) {
+    setState(() {
+      _isRecording = recording;
+    });
   }
 
   @override
@@ -84,11 +99,14 @@ class _MainScreenState extends State<MainScreen> {
       body: PageView(
         controller: _pageController,
         onPageChanged: _onPageChanged,
-        physics: const AlwaysScrollableScrollPhysics(),
+        physics:
+            _isRecording
+                ? const NeverScrollableScrollPhysics() // disable swipe during recording
+                : const AlwaysScrollableScrollPhysics(),
         children: _tabs,
       ),
       bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: secondaryColor, // Active icon and label color
+        selectedItemColor: secondaryColor,
         unselectedItemColor: dullColor,
         selectedLabelStyle: TextStyles.labelText,
         unselectedLabelStyle: TextStyles.labelText,

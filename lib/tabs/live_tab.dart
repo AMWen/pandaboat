@@ -13,7 +13,9 @@ import '../data/services/location_logger.dart';
 import '../utils/time_format.dart';
 
 class LiveTab extends StatefulWidget {
-  const LiveTab({super.key});
+  final ValueChanged<bool> onRecordingChanged;
+
+  const LiveTab({super.key, required this.onRecordingChanged});
 
   @override
   LiveTabState createState() => LiveTabState();
@@ -332,6 +334,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     setState(() {
       isRecording = !isRecording;
     });
+    widget.onRecordingChanged(isRecording);
 
     if (isRecording) {
       completeAccelBuffer = [];
@@ -442,10 +445,13 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       appBar: AppBar(
         title: const Text("Live Metrics"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: showSettingsDialog,
-            tooltip: 'Settings',
+          IgnorePointer(
+            ignoring: isRecording, // disables interaction during recording
+            child: IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: showSettingsDialog,
+              tooltip: 'Settings',
+            ),
           ),
         ],
       ),
@@ -468,9 +474,10 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
               style: FilledButton.styleFrom(
                 backgroundColor: isRecording ? Colors.red : primaryColor,
               ),
-              child: Text(
-                isRecording ? 'Stop Recording' : 'Start Recording',
-                style: TextStyles.buttonText,
+              child: Icon(
+                isRecording ? Icons.stop : Icons.fiber_manual_record,
+                color: isRecording ? Theme.of(context).colorScheme.surface : Colors.red,
+                size: isRecording ? 32 : 24
               ),
             ),
             const SizedBox(height: 16),
