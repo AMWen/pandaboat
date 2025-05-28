@@ -70,7 +70,8 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   // Accelerometer / Stroke Detection
   // ----------------------
   late StreamSubscription<UserAccelerometerEvent> accelSubscription;
-  static const int bufferSize = 25;  // 1.7 seconds
+  static const int bufferSize = 25; // 1.7 seconds
+  List<Map<String, double>> completeAccelBuffer = [];
   List<double> forwardAccelBuffer = [];
   double lastPeakTime = 0;
 
@@ -223,6 +224,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     double forwardAccel = event.y;
 
     // Maintain a moving buffer
+    completeAccelBuffer.add({'t': t, 'x': event.x, 'y': event.y, 'z': event.z});
     forwardAccelBuffer.add(forwardAccel);
     if (forwardAccelBuffer.length > bufferSize) {
       forwardAccelBuffer.removeAt(0);
@@ -329,6 +331,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     });
 
     if (isRecording) {
+      completeAccelBuffer = [];
       totalDistance = 0;
       strokeCount = 0;
       lastProcessedPosition = null;
@@ -337,6 +340,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       logger.startNewLog(currentLogId!);
     } else {
       flushGPSData();
+      logger.saveAccel(currentLogId!, completeAccelBuffer);
       logger.saveLog(currentLogId!);
       recordingStartTime = null;
       currentLogId = null;

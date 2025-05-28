@@ -23,3 +23,14 @@ double defaultMaxSpeed = 16.5;
 double defaultMaxDistance = 5;
 double defaultBaseThreshold = 0.1;
 double defaultStdDevMult = 1.05;
+
+String logPrefix = 'log';
+String namePrefix = 'name';
+String accelPrefix = 'accel';
+
+class FieldNames {
+  static const String entries = 'entries';
+  static const String name = 'name';
+  static const String icon = 'icon';
+  static const String tab = 'tab';
+}

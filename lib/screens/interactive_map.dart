@@ -80,14 +80,14 @@ class InteractiveMapState extends State<InteractiveMap> {
     final maxSpeed = speeds.reduce((a, b) => a > b ? a : b);
     List<Map<String, dynamic>> tabsList = [
       {
-        'name': 'Interactive Map',
-        'icon': Icon(Icons.map),
-        'tab': _buildMap(context, minSpeed, maxSpeed),
+        FieldNames.name: 'Interactive Map',
+        FieldNames.icon: Icon(Icons.map),
+        FieldNames.tab: _buildMap(context, minSpeed, maxSpeed),
       },
       {
-        'name': 'Speed and SPM vs Distance',
-        'icon': Icon(Icons.multiline_chart),
-        'tab': InteractiveLineChart(
+        FieldNames.name: 'Speed and SPM vs Distance',
+        FieldNames.icon: Icon(Icons.multiline_chart),
+        FieldNames.tab: InteractiveLineChart(
           xData: extractField(gpsData, (e) => e.distance),
           yData: extractField(gpsData, (e) => _useInstantValues ? e.speed : e.calculatedSpeed),
           yData2: extractField(gpsData, (e) => e.spm),
@@ -97,9 +97,9 @@ class InteractiveMapState extends State<InteractiveMap> {
         ),
       },
       {
-        'name': 'Smoothed Speed and SPM vs Distance',
-        'icon': Row(children: [Icon(Icons.multiline_chart), Icon(Icons.iron)]),
-        'tab': InteractiveLineChart(
+        FieldNames.name: 'Smoothed Speed and SPM vs Distance',
+        FieldNames.icon: Row(children: [Icon(Icons.multiline_chart), Icon(Icons.iron)]),
+        FieldNames.tab: InteractiveLineChart(
           xData: extractField(gpsData, (e) => e.distance),
           yData: extractField(
             gpsData,
@@ -112,9 +112,9 @@ class InteractiveMapState extends State<InteractiveMap> {
         ),
       },
       {
-        'name': 'Speed and SPM vs Time',
-        'icon': Icon(Icons.timer),
-        'tab': InteractiveLineChart(
+        FieldNames.name: 'Speed and SPM vs Time',
+        FieldNames.icon: Icon(Icons.timer),
+        FieldNames.tab: InteractiveLineChart(
           xData: extractField(gpsData, (e) => e.t.toDouble() / 1000),
           yData: extractField(gpsData, (e) => _useInstantValues ? e.speed : e.calculatedSpeed),
           yData2: extractField(gpsData, (e) => e.spm),
@@ -124,9 +124,9 @@ class InteractiveMapState extends State<InteractiveMap> {
         ),
       },
       {
-        'name': 'Smoothed Speed and SPM vs Time',
-        'icon': Row(children: [Icon(Icons.timer), Icon(Icons.iron)]),
-        'tab': InteractiveLineChart(
+        FieldNames.name: 'Smoothed Speed and SPM vs Time',
+        FieldNames.icon: Row(children: [Icon(Icons.timer), Icon(Icons.iron)]),
+        FieldNames.tab: InteractiveLineChart(
           xData: extractField(gpsData, (e) => e.t.toDouble() / 1000),
           yData: extractField(
             gpsData,
@@ -155,8 +155,8 @@ class InteractiveMapState extends State<InteractiveMap> {
               softWrap: true,
               style:
                   (logName?.length ?? 0) < 25 && (logName == null || !logName!.contains('\n'))
-                      ? Theme.of(context).textTheme.titleLarge
-                      : Theme.of(context).textTheme.titleMedium,
+                      ? Theme.of(context).appBarTheme.titleTextStyle
+                      : Theme.of(context).appBarTheme.titleTextStyle?.copyWith(fontSize: 16)
             ),
           ),
           actions: [
@@ -171,7 +171,7 @@ class InteractiveMapState extends State<InteractiveMap> {
                     SnackBar(
                       content: Text(
                         result == null
-                            ? 'No valid GPS data found to export.'
+                            ? 'Canceled or no valid GPS data found to export.'
                             : 'Log saved to $result',
                       ),
                     ),
@@ -228,7 +228,7 @@ class InteractiveMapState extends State<InteractiveMap> {
             tabs:
                 tabsList
                     .map(
-                      (entry) => Tab(icon: Tooltip(message: entry['name'], child: entry['icon'])),
+                      (entry) => Tab(icon: Tooltip(message: entry[FieldNames.name], child: entry[FieldNames.icon])),
                     )
                     .toList(),
           ),

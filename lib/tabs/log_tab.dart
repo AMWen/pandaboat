@@ -31,7 +31,7 @@ class LogTabState extends State<LogTab> {
     if (result == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('No valid GPS data found to export.')));
+      ).showSnackBar(SnackBar(content: Text('Canceled or no valid GPS data found to export.')));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Logs saved to $result')));
     }
@@ -48,7 +48,7 @@ class LogTabState extends State<LogTab> {
 
   Future<void> openLog(String key) async {
     final loaded = await logger.loadLog(key);
-    final gpsData = loaded['entries'];
+    final gpsData = loaded[FieldNames.entries];
 
     final logIds = logs.keys.toList();
     final currentIndex = logIds.indexOf(key);
@@ -204,8 +204,8 @@ class LogTabState extends State<LogTab> {
                   ...logs.entries.map((entry) {
                     final logId = entry.key;
                     final logInfo = entry.value;
-                    final entries = logInfo['entries'] as List<GpsData>;
-                    final logName = logInfo['name'] as String?;
+                    final gpsEntries = logInfo[FieldNames.entries] as List<GpsData>;
+                    final logName = logInfo[FieldNames.name] as String?;
 
                     return GestureDetector(
                       onTap: () => openLog(logId),
@@ -258,7 +258,7 @@ class LogTabState extends State<LogTab> {
                             SizedBox(
                               width: 75,
                               child: Text(
-                                _formatDuration(entries.isNotEmpty ? entries.last.t : null),
+                                _formatDuration(gpsEntries.isNotEmpty ? gpsEntries.last.t : null),
                                 style: TextStyles.normalText,
                               ),
                             ),
@@ -266,7 +266,7 @@ class LogTabState extends State<LogTab> {
                             SizedBox(
                               width: 75,
                               child: Text(
-                                _formatDistance(entries.isNotEmpty ? entries.last.distance : null),
+                                _formatDistance(gpsEntries.isNotEmpty ? gpsEntries.last.distance : null),
                                 style: TextStyles.normalText,
                               ),
                             ),
