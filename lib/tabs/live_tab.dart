@@ -455,9 +455,11 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
           ),
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             GridView.count(
               crossAxisCount: 2,
@@ -465,19 +467,21 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
               shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
+              physics: const NeverScrollableScrollPhysics(), // let outer scroll handle it
               children: metrics,
             ),
-            SizedBox(height: 50),
-            FilledButton(
-              onPressed: toggleRecording,
-              style: FilledButton.styleFrom(
-                backgroundColor: isRecording ? Colors.red : primaryColor,
-              ),
-              child: Icon(
-                isRecording ? Icons.stop : Icons.fiber_manual_record,
-                color: isRecording ? Theme.of(context).colorScheme.surface : Colors.red,
-                size: isRecording ? 32 : 24
+            const SizedBox(height: 50),
+            Center(
+              child: FilledButton(
+                onPressed: toggleRecording,
+                style: FilledButton.styleFrom(
+                  backgroundColor: isRecording ? Colors.red : Theme.of(context).colorScheme.primary,
+                ),
+                child: Icon(
+                  isRecording ? Icons.stop : Icons.fiber_manual_record,
+                  color: isRecording ? Theme.of(context).colorScheme.surface : Colors.red,
+                  size: isRecording ? 32 : 24,
+                ),
               ),
             ),
             const SizedBox(height: 16),
