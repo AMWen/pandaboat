@@ -18,11 +18,10 @@ class TextStyles {
   static const TextStyle dialogTitle = TextStyle(fontSize: 18, fontWeight: FontWeight.w700);
 }
 
-double defaultMaxSPM = 120;
+double defaultMaxSPM = 95;
 double defaultMaxSpeed = 16.5;
 double defaultMaxDistance = 5;
-double defaultBaseThreshold = 0.45;
-double defaultStdDevMult = 1.05;
+double defaultBaseThreshold = 0.3;
 
 String logPrefix = 'log';
 String namePrefix = 'name';
