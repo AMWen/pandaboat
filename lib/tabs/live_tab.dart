@@ -25,8 +25,8 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   // ----------------------
   // Settings / Thresholds
   // ----------------------
+  bool useFlatOrientation = true;
   double baseThreshold = defaultBaseThreshold;
-  double stdDevMult = defaultStdDevMult;
   double maxSPM = defaultMaxSPM;
   late double minIntervalMs;
   double maxSpeed = defaultMaxSpeed;
@@ -73,7 +73,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   // Accelerometer / Stroke Detection
   // ----------------------
   late StreamSubscription<UserAccelerometerEvent> accelSubscription;
-  static const int bufferSize = 25; // 1.7 seconds
+  static const int bufferSize = 10; // 0.67 seconds
   List<Map<String, double>> completeAccelBuffer = [];
   List<double> forwardAccelBuffer = [];
   double lastPeakTime = 0;
@@ -226,7 +226,10 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     final t = now.millisecondsSinceEpoch.toDouble();
 
     // Can be held in hand or lying flat
-    double forwardAccel = max(max(-event.z, event.y), 0);
+    double forwardAccel =
+        useFlatOrientation
+            ? (max(event.y, 0) > baseThreshold ? max(event.y, 0) : 0)
+            : (max(-event.z, 0) > baseThreshold ? max(-event.z, 0) : 0);
 
     // Maintain a moving buffer
     completeAccelBuffer.add({'t': t, 'x': event.x, 'y': event.y, 'z': event.z});
@@ -235,7 +238,6 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       forwardAccelBuffer.removeAt(0);
     }
 
-    // Apply a simple moving average for smoothing
     if (forwardAccelBuffer.length < 3) return;
 
     // Peak detection logic
@@ -247,9 +249,8 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     // Peak (simple local maximum)
     if (b > a && b > c) {
       double timeSinceLastPeak = t - lastPeakTime;
-      double dynamicThreshold = _dynamicThreshold(forwardAccelBuffer);
 
-      if (b > max(dynamicThreshold, baseThreshold) && timeSinceLastPeak > minIntervalMs) {
+      if (timeSinceLastPeak > minIntervalMs) {
         setState(() {
           strokes.add(now);
           strokeCount++;
@@ -257,23 +258,6 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
         lastPeakTime = t;
       }
     }
-  }
-
-  double _dynamicThreshold(List<double> data) {
-    if (data.isEmpty) return 0;
-    double median = _median(data);
-    List<double> deviations = data.map((x) => (x - median).abs()).toList();
-    double mad = _median(deviations);
-    return median + mad * stdDevMult;
-  }
-
-  // Median instead of mean, less sensitive to outliers
-  double _median(List<double> data) {
-    int n = data.length;
-    if (n == 0) return 0;
-
-    List<double> sorted = List.from(data)..sort();
-    return (n % 2 == 1) ? sorted[n ~/ 2] : (sorted[n ~/ 2 - 1] + sorted[n ~/ 2]) / 2.0;
   }
 
   void updateUI() {
@@ -372,7 +356,6 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
 
   void showSettingsDialog() {
     final baseThresholdController = TextEditingController(text: baseThreshold.toString());
-    final stdDevMultController = TextEditingController(text: stdDevMult.toString());
     final maxSPMController = TextEditingController(text: maxSPM.toString());
     final maxSpeedController = TextEditingController(text: maxSpeed.toString());
     final maxDistanceController = TextEditingController(text: maxDistance.toString());
@@ -398,7 +381,6 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
               mainAxisSize: MainAxisSize.min,
               children: [
                 settingsTextInput(baseThresholdController, 'Base Threshold (for Stroke Count)'),
-                settingsTextInput(stdDevMultController, 'Std Dev Mutliplier (for Accel)'),
                 settingsTextInput(maxSPMController, 'Max SPM'),
                 settingsTextInput(maxSpeedController, 'Max Speed (km/hr)'),
                 settingsTextInput(maxDistanceController, 'Max Distance (m)'),
@@ -411,7 +393,6 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
                   setState(() {
                     baseThreshold =
                         double.tryParse(baseThresholdController.text) ?? defaultBaseThreshold;
-                    stdDevMult = double.tryParse(stdDevMultController.text) ?? defaultStdDevMult;
                     maxSPM = double.tryParse(maxSPMController.text) ?? defaultMaxSPM;
                     minIntervalMs = calcMinIntervalMs(maxSPM);
                     maxSpeed = double.tryParse(maxSpeedController.text) ?? defaultMaxSpeed;
@@ -445,6 +426,18 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       appBar: AppBar(
         title: const Text("Live Metrics"),
         actions: [
+          IgnorePointer(
+            ignoring: isRecording, // disables interaction during recording
+            child: IconButton(
+              icon: Icon(useFlatOrientation ? Icons.screen_rotation : Icons.stay_current_portrait),
+              tooltip: useFlatOrientation ? 'Switch to Hand-Held Mode' : 'Switch to Flat Mode',
+              onPressed: () {
+                setState(() {
+                  useFlatOrientation = !useFlatOrientation;
+                });
+              },
+            ),
+          ),
           IgnorePointer(
             ignoring: isRecording, // disables interaction during recording
             child: IconButton(
