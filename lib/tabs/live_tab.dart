@@ -284,8 +284,8 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   }
 
   void calculateSPM() {
-    Duration window = Duration(seconds: 5); // SPM is averaged over past 5 seconds
-    final now = strokes.isNotEmpty ? strokes.last : DateTime.now();
+    Duration window = Duration(seconds: 3); // SPM is averaged over past 3 seconds
+    final now = DateTime.now();
     final cutoff = now.subtract(window);
     strokes.retainWhere((s) => s.isAfter(cutoff));
     setState(() {
