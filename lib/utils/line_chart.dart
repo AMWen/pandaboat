@@ -52,6 +52,8 @@ class InteractiveLineChart extends StatefulWidget {
 
 class _InteractiveLineChartState extends State<InteractiveLineChart> {
   double? _xOffset;
+  double? _yOffset;
+  double? _y2Offset;
   double? _minXOverride;
   double? _maxXOverride;
   double? _minYOverride;
@@ -67,6 +69,8 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
 
   Future<void> _showChartSettingsDialog() async {
     final xOffsetCtrl = TextEditingController(text: _xOffset?.toString() ?? '');
+    final yOffsetCtrl = TextEditingController(text: _yOffset?.toString() ?? '');
+    final y2OffsetCtrl = TextEditingController(text: _y2Offset?.toString() ?? '');
     final xMinCtrl = TextEditingController(text: _minXOverride?.toString() ?? '');
     final xMaxCtrl = TextEditingController(text: _maxXOverride?.toString() ?? '');
     final yMinCtrl = TextEditingController(text: _minYOverride?.toString() ?? '');
@@ -111,6 +115,8 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildNumberField("X Offset", xOffsetCtrl),
+                  _buildNumberField("Y Offset", yOffsetCtrl),
+                  _buildNumberField("Y2 Offset", y2OffsetCtrl),
                   const Divider(),
                   _buildNumberField("Min X", xMinCtrl),
                   _buildNumberField("Max X", xMaxCtrl),
@@ -133,6 +139,8 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
                 onPressed: () {
                   setState(() {
                     _xOffset = double.tryParse(xOffsetCtrl.text);
+                    _yOffset = double.tryParse(yOffsetCtrl.text);
+                    _y2Offset = double.tryParse(y2OffsetCtrl.text);
                     _minXOverride = double.tryParse(xMinCtrl.text);
                     _maxXOverride = double.tryParse(xMaxCtrl.text);
                     _intervalXOverride = int.tryParse(xIntCtrl.text);
@@ -168,30 +176,32 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
   @override
   Widget build(BuildContext context) {
     final adjustedXData =
-        _xOffset != null
-            ? widget.xData.map((x) => x - _xOffset!).toList()
-            : widget.xData;
-    
+        _xOffset != null ? widget.xData.map((x) => x - _xOffset!).toList() : widget.xData;
+    final adjustedYData =
+        _yOffset != null ? widget.yData.map((y) => y - _yOffset!).toList() : widget.yData;
+    final adjustedY2Data =
+        _y2Offset != null ? widget.yData2?.map((y2) => y2 - _y2Offset!).toList() : widget.yData2;
+
     final double minX = _minXOverride ?? 0;
-    final double maxX = _maxXOverride ?? widget.xData.reduce(max);
+    final double maxX = _maxXOverride ?? adjustedXData.reduce(max);
 
     final double minY = _minYOverride ?? 0;
-    final double maxY = _maxYOverride ?? widget.yData.reduce(max);
+    final double maxY = _maxYOverride ?? adjustedYData.reduce(max);
 
     final double minY2 = _minY2Override ?? 0;
     final double maxY2 =
-        _maxY2Override ?? (widget.yData2?.reduce(max) ?? 0) * 1.4; // scale so graphs don't overlap
+        _maxY2Override ?? (adjustedY2Data?.reduce(max) ?? 0) * 1.4; // scale so graphs don't overlap
 
     final spots = List.generate(
-      widget.xData.length,
-      (i) => ChartData(adjustedXData[i], widget.yData[i]),
+      adjustedXData.length,
+      (i) => ChartData(adjustedXData[i], adjustedYData[i]),
     );
 
     final spots2 =
-        widget.yData2 != null
+        adjustedY2Data != null
             ? List.generate(
-              widget.xData.length,
-              (i) => ChartData(adjustedXData[i], widget.yData2![i]),
+              adjustedXData.length,
+              (i) => ChartData(adjustedXData[i], adjustedY2Data[i]),
             )
             : null;
 
@@ -231,42 +241,42 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
     return Column(
       children: [
         spots2 != null
-          ? Row(
-            children: [
-              Checkbox(
-                value: _showPrimarySeries,
-                onChanged: (val) {
-                  setState(() => _showPrimarySeries = val ?? true);
-                },
-                visualDensity: VisualDensity(horizontal: -2, vertical: -2),
-              ),
-              const Text('Primary Series'),
-              const SizedBox(width: 12),
-              Checkbox(
-                value: _showSecondarySeries,
-                onChanged: (val) {
-                  setState(() => _showSecondarySeries = val ?? true);
-                },
-                visualDensity: VisualDensity(horizontal: -2, vertical: -2),
-              ),
-              const Text('Secondary Series'),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: _showChartSettingsDialog,
-                child: const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Icon(Icons.settings, size: 24),
+            ? Row(
+              children: [
+                Checkbox(
+                  value: _showPrimarySeries,
+                  onChanged: (val) {
+                    setState(() => _showPrimarySeries = val ?? true);
+                  },
+                  visualDensity: VisualDensity(horizontal: -2, vertical: -2),
                 ),
+                const Text('Primary Series'),
+                const SizedBox(width: 12),
+                Checkbox(
+                  value: _showSecondarySeries,
+                  onChanged: (val) {
+                    setState(() => _showSecondarySeries = val ?? true);
+                  },
+                  visualDensity: VisualDensity(horizontal: -2, vertical: -2),
+                ),
+                const Text('Secondary Series'),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _showChartSettingsDialog,
+                  child: const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Icon(Icons.settings, size: 24),
+                  ),
+                ),
+              ],
+            )
+            : GestureDetector(
+              onTap: _showChartSettingsDialog,
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.settings, size: 24),
               ),
-            ],
-          )
-          : GestureDetector(
-            onTap: _showChartSettingsDialog,
-            child: const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Icon(Icons.settings, size: 24),
             ),
-          ),
         Expanded(
           child: SfCartesianChart(
             zoomPanBehavior: ZoomPanBehavior(
