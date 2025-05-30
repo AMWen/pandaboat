@@ -94,6 +94,9 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
                   icon: const Icon(Icons.refresh),
                   onPressed: () {
                     setState(() {
+                      _xOffset = null;
+                      _yOffset = null;
+                      _y2Offset = null;
                       _minXOverride = null;
                       _maxXOverride = null;
                       _intervalXOverride = null;
@@ -103,7 +106,6 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
                       _minY2Override = null;
                       _maxY2Override = null;
                       _intervalY2Override = null;
-                      _xOffset = null;
                     });
                     Navigator.pop(ctx);
                   },
