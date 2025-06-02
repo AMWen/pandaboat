@@ -23,9 +23,14 @@ class LiveTab extends StatefulWidget {
 
 class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   // ----------------------
-  // Settings / Thresholds
+  // Orientation
   // ----------------------
   bool useFlatOrientation = true;
+  bool isForward = true;
+
+  // ----------------------
+  // Settings / Thresholds
+  // ----------------------
   double baseThreshold = defaultBaseThreshold;
   double maxSPM = defaultMaxSPM;
   late double minIntervalMs;
@@ -225,11 +230,19 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     final now = DateTime.now();
     final t = now.millisecondsSinceEpoch.toDouble();
 
-    // Can be held in hand or lying flat
+    // Can be facing forward or backwards, held in hand or lying flat
+    double y = event.y;
+    double z = event.z;
+
+    if (!isForward) {
+      y *= -1;
+      z *= -1;
+    }
+
     double forwardAccel =
         useFlatOrientation
-            ? (max(event.y, 0) > baseThreshold ? max(event.y, 0) : 0)
-            : (max(-event.z, 0) > baseThreshold ? max(-event.z, 0) : 0);
+            ? (max(y, 0) > baseThreshold ? max(y, 0) : 0)
+            : (max(-z, 0) > baseThreshold ? max(-z, 0) : 0);
 
     // Maintain a moving buffer
     completeAccelBuffer.add({'t': t, 'x': event.x, 'y': event.y, 'z': event.z});
@@ -429,11 +442,23 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
           IgnorePointer(
             ignoring: isRecording, // disables interaction during recording
             child: IconButton(
-              icon: Icon(useFlatOrientation ? Icons.screen_rotation : Icons.stay_current_portrait),
-              tooltip: useFlatOrientation ? 'Switch to Hand-Held Mode' : 'Switch to Flat Mode',
+              icon: Icon(useFlatOrientation ? Icons.stay_current_portrait : Icons.screen_rotation),
+              tooltip: useFlatOrientation ? 'Currently: Flat Mode' : 'Currently:  Hand-Held Mode',
               onPressed: () {
                 setState(() {
                   useFlatOrientation = !useFlatOrientation;
+                });
+              },
+            ),
+          ),
+          IgnorePointer(
+            ignoring: isRecording,
+            child: IconButton(
+              icon: Icon(isForward ? Icons.arrow_upward : Icons.arrow_downward),
+              tooltip: isForward ? 'Direction: Forward' : 'Direction: Backward',
+              onPressed: () {
+                setState(() {
+                  isForward = !isForward;
                 });
               },
             ),
