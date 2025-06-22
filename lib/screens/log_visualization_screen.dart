@@ -5,6 +5,7 @@ import '../data/models/gps_data.dart';
 import '../data/constants.dart';
 import '../data/services/location_logger.dart';
 import '../utils/line_chart.dart';
+import '../utils/text_input_format.dart';
 import '../utils/time_format.dart';
 
 class LogVisualizationScreen extends StatefulWidget {
@@ -36,6 +37,10 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
 
   bool _useInstantValues = true; // false = calculated
   bool _useSmoothing = true;
+
+  // Map settings
+  double? minDistance;
+  double? maxDistance;
 
   @override
   void initState() {
@@ -319,9 +324,48 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
     return data.where((e) => e.outlier == false).map(fieldSelector).toList();
   }
 
+  void _showDistanceFilterDialog(BuildContext context) {
+    final minController = TextEditingController(text: minDistance?.toString() ?? '');
+    final maxController = TextEditingController(text: maxDistance?.toString() ?? '');
+
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Set Distance Filter', style: TextStyles.dialogTitle),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                buildNumberField("Min Distance (m)", minController),
+                buildNumberField("Max Distance (m)", maxController),
+              ],
+            ),
+            actions: [
+              FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              FilledButton(
+                onPressed: () {
+                  setState(() {
+                    minDistance = double.tryParse(minController.text.trim());
+                    maxDistance = double.tryParse(maxController.text.trim());
+                  });
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Apply'),
+              ),
+            ],
+          ),
+    );
+  }
+
   Widget _buildMap(BuildContext context, double minSpeed, double maxSpeed) {
     // Filter out outliers first, then create the polyline and markers
-    final filteredData = gpsData.where((point) => !point.outlier).toList();
+    final filteredData =
+        gpsData.where((point) {
+          if (point.outlier) return false;
+          if (minDistance != null && point.distance < minDistance!) return false;
+          if (maxDistance != null && point.distance > maxDistance!) return false;
+          return true;
+        }).toList();
 
     final polylinePoints = filteredData.map((point) => LatLng(point.lat, point.lon)).toList();
 
@@ -370,16 +414,41 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
           );
         }).toList();
 
-    return FlutterMap(
-      options: MapOptions(initialCenter: polylinePoints.first, initialZoom: 18.0),
+    return Stack(
       children: [
-        TileLayer(urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
-        PolylineLayer(
-          polylines: [
-            Polyline(points: polylinePoints, strokeWidth: 4.0, color: Colors.blue.withAlpha(150)),
-          ],
+        polylinePoints.isEmpty
+            ? const Center(
+              child: Text(
+                'No GPS data to display for selected distance range.',
+                textAlign: TextAlign.center,
+              ),
+            )
+            : FlutterMap(
+              options: MapOptions(initialCenter: polylinePoints.first, initialZoom: 18.0),
+              children: [
+                TileLayer(urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: polylinePoints,
+                      strokeWidth: 4.0,
+                      color: Colors.blue.withAlpha(150),
+                    ),
+                  ],
+                ),
+                MarkerLayer(markers: markers),
+              ],
+            ),
+        Positioned(
+          top: 10,
+          right: 10,
+          child: IconButton(
+            icon: const Icon(Icons.settings),
+            color: dullColor,
+            tooltip: "Filter by Distance",
+            onPressed: () => _showDistanceFilterDialog(context),
+          ),
         ),
-        MarkerLayer(markers: markers),
       ],
     );
   }
