@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:pandaboat/data/constants.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
+import 'text_input_format.dart';
+
 int? calculateRoundedInterval(
   List<double> data,
   double rawInterval,
@@ -116,21 +118,21 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildNumberField("X Offset", xOffsetCtrl),
-                  _buildNumberField("Y Offset", yOffsetCtrl),
-                  _buildNumberField("Y2 Offset", y2OffsetCtrl),
+                  buildNumberField("X Offset", xOffsetCtrl),
+                  buildNumberField("Y Offset", yOffsetCtrl),
+                  buildNumberField("Y2 Offset", y2OffsetCtrl),
                   const Divider(),
-                  _buildNumberField("Min X", xMinCtrl),
-                  _buildNumberField("Max X", xMaxCtrl),
-                  _buildNumberField("Interval X", xIntCtrl),
+                  buildNumberField("Min X", xMinCtrl),
+                  buildNumberField("Max X", xMaxCtrl),
+                  buildNumberField("Interval X", xIntCtrl),
                   const Divider(),
-                  _buildNumberField("Min Y", yMinCtrl),
-                  _buildNumberField("Max Y", yMaxCtrl),
-                  _buildNumberField("Interval Y", yIntCtrl),
+                  buildNumberField("Min Y", yMinCtrl),
+                  buildNumberField("Max Y", yMaxCtrl),
+                  buildNumberField("Interval Y", yIntCtrl),
                   const Divider(),
-                  _buildNumberField("Min Y2", y2MinCtrl),
-                  _buildNumberField("Max Y2", y2MaxCtrl),
-                  _buildNumberField("Interval Y2", y2IntCtrl),
+                  buildNumberField("Min Y2", y2MinCtrl),
+                  buildNumberField("Max Y2", y2MaxCtrl),
+                  buildNumberField("Interval Y2", y2IntCtrl),
                 ],
               ),
             ),
@@ -159,19 +161,6 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
               ),
             ],
           ),
-    );
-  }
-
-  Widget _buildNumberField(String label, TextEditingController controller) {
-    return TextField(
-      controller: controller,
-      keyboardType: TextInputType.numberWithOptions(decimal: true),
-      decoration: InputDecoration(
-        isDense: true,
-        labelText: label,
-        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: primaryColor, width: 2)),
-        border: InputBorder.none,
-      ),
     );
   }
 
