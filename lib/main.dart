@@ -61,13 +61,17 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final _pageController = PageController();
   bool _isRecording = false;
+  String? _currentLogId;
 
   late List<Widget> _tabs;
 
   @override
   void initState() {
     super.initState();
-    _tabs = [LiveTab(onRecordingChanged: setRecording), LogTab()];
+    _tabs = [
+      LiveTab(onRecordingChanged: setRecording, onLogIdChanged: setCurrentLogId),
+      LogTab(isRecording: _isRecording, currentLogId: _currentLogId, pageController: _pageController),
+    ];
   }
 
   void _onPageChanged(int index) {
@@ -89,6 +93,16 @@ class _MainScreenState extends State<MainScreen> {
   void setRecording(bool recording) {
     setState(() {
       _isRecording = recording;
+      // Rebuild tabs with new recording state
+      _tabs[1] = LogTab(isRecording: _isRecording, currentLogId: _currentLogId, pageController: _pageController);
+    });
+  }
+
+  void setCurrentLogId(String? logId) {
+    setState(() {
+      _currentLogId = logId;
+      // Rebuild tabs with new log ID
+      _tabs[1] = LogTab(isRecording: _isRecording, currentLogId: _currentLogId, pageController: _pageController);
     });
   }
 
@@ -104,10 +118,7 @@ class _MainScreenState extends State<MainScreen> {
       body: PageView(
         controller: _pageController,
         onPageChanged: _onPageChanged,
-        physics:
-            _isRecording
-                ? const NeverScrollableScrollPhysics() // disable swipe during recording
-                : const AlwaysScrollableScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(), // Allow swiping during recording
         children: _tabs,
       ),
       bottomNavigationBar: BottomNavigationBar(

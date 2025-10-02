@@ -15,8 +15,9 @@ import '../utils/time_format.dart';
 
 class LiveTab extends StatefulWidget {
   final ValueChanged<bool> onRecordingChanged;
+  final ValueChanged<String?> onLogIdChanged;
 
-  const LiveTab({super.key, required this.onRecordingChanged});
+  const LiveTab({super.key, required this.onRecordingChanged, required this.onLogIdChanged});
 
   @override
   LiveTabState createState() => LiveTabState();
@@ -361,12 +362,14 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       lastProcessedPosition = null;
       recordingStartTime = DateTime.now();
       currentLogId = recordingStartTime!.toIso8601String();
+      widget.onLogIdChanged(currentLogId);
     } else {
       flushGPSData();
       logger.saveAccel(currentLogId!, completeAccelBuffer);
       logger.saveLog(currentLogId!);
       recordingStartTime = null;
       currentLogId = null;
+      widget.onLogIdChanged(null);
     }
   }
 

@@ -6,7 +6,11 @@ import '../screens/log_visualization_screen.dart';
 import '../utils/time_format.dart';
 
 class LogTab extends StatefulWidget {
-  const LogTab({super.key});
+  final bool isRecording;
+  final String? currentLogId;
+  final PageController pageController;
+
+  const LogTab({super.key, this.isRecording = false, this.currentLogId, required this.pageController});
 
   @override
   LogTabState createState() => LogTabState();
@@ -20,7 +24,52 @@ class LogTabState extends State<LogTab> {
   @override
   void initState() {
     super.initState();
-    loadLogs();
+    // If recording, go directly to visualization screen
+    if (widget.isRecording && widget.currentLogId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        openLiveLog(widget.currentLogId!);
+      });
+    } else {
+      loadLogs();
+    }
+  }
+
+  @override
+  void didUpdateWidget(LogTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // When recording starts, open live log
+    if (widget.isRecording && widget.currentLogId != null && !oldWidget.isRecording) {
+      openLiveLog(widget.currentLogId!);
+    }
+  }
+
+  Future<void> openLiveLog(String logId) async {
+    final loaded = await logger.loadLog(logId);
+    final gpsData = loaded[FieldNames.entries] as List<GpsData>? ?? [];
+
+    if (!mounted) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (_) => LogVisualizationScreen(
+              logIds: [logId],
+              currentIndex: 0,
+              initialGpsData: gpsData,
+              isLiveRecording: true,
+            ),
+      ),
+    );
+
+    // After visualization screen is popped, navigate back to Live tab
+    if (mounted && widget.isRecording) {
+      widget.pageController.animateToPage(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   Future<void> downloadSelectedLogs() async {

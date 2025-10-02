@@ -13,6 +13,7 @@ class LogVisualizationScreen extends StatefulWidget {
   final int currentIndex;
   final List<GpsData> initialGpsData;
   final String? logId;
+  final bool isLiveRecording;
 
   const LogVisualizationScreen({
     super.key,
@@ -20,6 +21,7 @@ class LogVisualizationScreen extends StatefulWidget {
     required this.currentIndex,
     required this.initialGpsData,
     this.logId,
+    this.isLiveRecording = false,
   });
 
   @override
@@ -67,6 +69,7 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
   }
 
   void onSwipeLeft() {
+    if (widget.isLiveRecording) return; // Disable log navigation during live recording
     if (currentIndex < widget.logIds.length - 1) {
       loadLog(currentIndex + 1);
     } else if (currentIndex == widget.logIds.length - 1) {
@@ -75,6 +78,7 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
   }
 
   void onSwipeRight() {
+    if (widget.isLiveRecording) return; // Disable log navigation during live recording
     if (currentIndex > 0) {
       loadLog(currentIndex - 1);
     } else if (currentIndex == 0) {
@@ -213,28 +217,29 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
               ),
             ),
             actions: [
-              SizedBox(
-                width: 34,
-                child: IconButton(
-                  icon: const Icon(Icons.download),
-                  tooltip: "Download this log",
-                  onPressed: () async {
-                    final result = await logger.exportLogsToCsv({logId});
+              if (!widget.isLiveRecording)
+                SizedBox(
+                  width: 34,
+                  child: IconButton(
+                    icon: const Icon(Icons.download),
+                    tooltip: "Download this log",
+                    onPressed: () async {
+                      final result = await logger.exportLogsToCsv({logId});
 
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            result == null
-                                ? 'Canceled or no valid GPS data found to export.'
-                                : 'Log saved to $result',
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              result == null
+                                  ? 'Canceled or no valid GPS data found to export.'
+                                  : 'Log saved to $result',
+                            ),
                           ),
-                        ),
-                      );
-                    }
-                  },
+                        );
+                      }
+                    },
+                  ),
                 ),
-              ),
               SizedBox(
                 width: 34,
                 child: IconButton(
@@ -260,41 +265,42 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
                   },
                 ),
               ),
-              SizedBox(
-                width: 34,
-                child: IconButton(
-                  icon: const Icon(Icons.delete),
-                  tooltip: "Delete this log",
-                  onPressed: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder:
-                          (ctx) => AlertDialog(
-                            title: const Text("Delete Log", style: TextStyles.dialogTitle),
-                            content: const Text("Are you sure you want to delete this log?"),
-                            actions: [
-                              FilledButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text("Cancel"),
-                              ),
-                              FilledButton(
-                                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                                onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text("Delete"),
-                              ),
-                            ],
-                          ),
-                    );
+              if (!widget.isLiveRecording)
+                SizedBox(
+                  width: 34,
+                  child: IconButton(
+                    icon: const Icon(Icons.delete),
+                    tooltip: "Delete this log",
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder:
+                            (ctx) => AlertDialog(
+                              title: const Text("Delete Log", style: TextStyles.dialogTitle),
+                              content: const Text("Are you sure you want to delete this log?"),
+                              actions: [
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text("Cancel"),
+                                ),
+                                FilledButton(
+                                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text("Delete"),
+                                ),
+                              ],
+                            ),
+                      );
 
-                    if (confirm == true) {
-                      await logger.clearLog(logId);
-                      if (context.mounted) {
-                        Navigator.pop(context);
+                      if (confirm == true) {
+                        await logger.clearLog(logId);
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
                       }
-                    }
-                  },
+                    },
+                  ),
                 ),
-              ),
               SizedBox(width: 12),
             ],
             bottom: TabBar(
