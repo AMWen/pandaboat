@@ -8,6 +8,7 @@ import 'package:geolocator_android/geolocator_android.dart';
 import 'package:geolocator_apple/geolocator_apple.dart';
 import 'package:pandaboat/data/constants.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models/gps_data.dart';
 import '../data/services/location_logger.dart';
 import '../utils/time_format.dart';
@@ -94,6 +95,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
   @override
   void initState() {
     super.initState();
+    _loadSettings();
     _initLocation();
 
     accelSubscription = userAccelerometerEventStream(
@@ -111,6 +113,25 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
 
   double calcMinIntervalMs(spm) {
     return (1 / spm * 1000 * 60); // min -> sec -> ms
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      baseThreshold = prefs.getDouble('baseThreshold') ?? defaultBaseThreshold;
+      maxSPM = prefs.getDouble('maxSPM') ?? defaultMaxSPM;
+      maxSpeed = prefs.getDouble('maxSpeed') ?? defaultMaxSpeed;
+      maxDistance = prefs.getDouble('maxDistance') ?? defaultMaxDistance;
+      minIntervalMs = calcMinIntervalMs(maxSPM);
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('baseThreshold', baseThreshold);
+    await prefs.setDouble('maxSPM', maxSPM);
+    await prefs.setDouble('maxSpeed', maxSpeed);
+    await prefs.setDouble('maxDistance', maxDistance);
   }
 
   Future<void> _initLocation() async {
@@ -387,7 +408,7 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
+          (ctx) => AlertDialog(
             title: const Text('Settings', style: TextStyles.dialogTitle),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -398,21 +419,44 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
                 settingsTextInput(maxDistanceController, 'Max Distance (m)'),
               ],
             ),
+            actionsOverflowButtonSpacing: 0,
             actions: [
-              FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-              FilledButton(
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: Colors.green),
+                    onPressed: () async {
+                      setState(() {
+                        baseThreshold =
+                            double.tryParse(baseThresholdController.text) ?? defaultBaseThreshold;
+                        maxSPM = double.tryParse(maxSPMController.text) ?? defaultMaxSPM;
+                        minIntervalMs = calcMinIntervalMs(maxSPM);
+                        maxSpeed = double.tryParse(maxSpeedController.text) ?? defaultMaxSpeed;
+                        maxDistance =
+                            double.tryParse(maxDistanceController.text) ?? defaultMaxDistance;
+                      });
+                      await _saveSettings();
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    },
+                    child: const Text('Save'),
+                  ),
+                ],
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
                 onPressed: () {
-                  setState(() {
-                    baseThreshold =
-                        double.tryParse(baseThresholdController.text) ?? defaultBaseThreshold;
-                    maxSPM = double.tryParse(maxSPMController.text) ?? defaultMaxSPM;
-                    minIntervalMs = calcMinIntervalMs(maxSPM);
-                    maxSpeed = double.tryParse(maxSpeedController.text) ?? defaultMaxSpeed;
-                    maxDistance = double.tryParse(maxDistanceController.text) ?? defaultMaxDistance;
-                  });
-                  Navigator.pop(context);
+                  baseThresholdController.text = defaultBaseThreshold.toString();
+                  maxSPMController.text = defaultMaxSPM.toString();
+                  maxSpeedController.text = defaultMaxSpeed.toString();
+                  maxDistanceController.text = defaultMaxDistance.toString();
                 },
-                child: const Text('Save'),
+                child: const Text('Reset to Defaults'),
               ),
             ],
           ),
