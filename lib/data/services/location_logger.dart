@@ -2,26 +2,29 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:pandaboat/data/constants.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../models/gps_data.dart';
+import '../constants.dart';
 
 class LocationLogger {
   final Map<String, List<Map<String, dynamic>>> _logs = {};
+  final Box<String> _logBox = Hive.box(logPrefix);
+  final Box<String> _nameBox = Hive.box(namePrefix);
+  final Box<String> _accelBox = Hive.box(accelPrefix);
 
   void startNewLog(String logId) {
     _logs[logId] = [];
   }
 
-  void appendToLog(String logId, dynamic data) {
+  Future<void> appendToLog(String logId, dynamic data) async {
     if (!_logs.containsKey(logId)) {
       startNewLog(logId);
     }
 
     if (data is Map<String, dynamic>) {
-      _logs[logId]!.add(data);
+      _logs[logId]!.add(data); // single value
     } else if (data is List<Map<String, dynamic>>) {
-      _logs[logId]!.addAll(data);
+      _logs[logId]!.addAll(data); // list of values
     } else {
       throw ArgumentError('Data must be a Map or List of Maps');
     }
@@ -29,91 +32,91 @@ class LocationLogger {
   }
 
   Future<void> saveLog(String logId) async {
-    final prefs = await SharedPreferences.getInstance();
     final logData = _logs[logId];
     if (logData != null) {
-      prefs.setString('${logPrefix}_$logId', jsonEncode(logData));
+      await _logBox.put(logId, jsonEncode(logData));
     }
   }
 
-  Future<void> saveAccel(
-    String logId,
-    List<Map<String, double>> accelBuffer,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-
+  Future<void> saveAccel(String logId, List<Map<String, double>> accelBuffer) async {
     if (accelBuffer.isNotEmpty) {
-      prefs.setString('${accelPrefix}_$logId', jsonEncode(accelBuffer));
+      await _accelBox.put(logId, jsonEncode(accelBuffer));
     }
   }
 
   Future<List<dynamic>> loadAccel(String logId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString('${accelPrefix}_$logId');
-    if (data == null) return [];
-
-    final decoded = jsonDecode(data) as List<dynamic>;
-    return decoded;
+    final raw = _accelBox.get(logId);
+    if (raw == null) return [];
+    return jsonDecode(raw) as List<dynamic>;
   }
 
   Future<Map<String, dynamic>> loadLog(String logId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString('${logPrefix}_$logId');
+    final raw = _logBox.get(logId);
+    if (raw == null) return {};
+    final data = jsonDecode(raw);
     if (data == null) return {};
+    final decoded = (data as List).cast<Map<String, dynamic>>();
+    final smoothedLogs = applySlidingSmoothing(decoded, windowSize: 5);
+    final gpsData = smoothedLogs.map((e) => GpsData.fromJson(e)).toList();
+    final logName = _nameBox.get(logId);
+    return {FieldNames.name: logName, FieldNames.entries: gpsData};
+  }
 
-    final decoded = jsonDecode(data) as List<dynamic>;
-    final gpsData = decoded.map((e) => GpsData.fromJson(e)).toList();
-    final logName = await getLogName(logId);
-    final log = {FieldNames.name: logName, FieldNames.entries: gpsData};
-    return log;
+  List<Map<String, dynamic>> applySlidingSmoothing(
+    List<Map<String, dynamic>> logData, {
+    int windowSize = 3,
+  }) {
+    if (windowSize % 2 == 0) {
+      windowSize = windowSize + 1; // force windowSize to be odd
+    }
+
+    final int halfWindow = windowSize ~/ 2;
+
+    return List.generate(logData.length, (i) {
+      double sum = 0;
+      double sumSpm = 0;
+      int count = 0;
+
+      for (int offset = -halfWindow; offset <= halfWindow; offset++) {
+        final idx = (i + offset).clamp(0, logData.length - 1);
+        sum += logData[idx]['smoothed'] as double;
+        sumSpm += logData[idx]['spm'] as double;
+        count++;
+      }
+
+      final avg = sum / count;
+      final avgSpm = sumSpm / count;
+
+      return {...logData[i], 'smoothed': avg, 'spm': avgSpm};
+    });
   }
 
   Future<Map<String, Map<String, dynamic>>> loadAllLogs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final allKeys = prefs.getKeys().where((k) => k.startsWith('${logPrefix}_'));
-
-    Map<String, Map<String, dynamic>> logs = {};
-    for (final key in allKeys) {
-      final logId = key.substring(4);
-      logs[logId] = await loadLog(logId);
+    final logs = <String, Map<String, dynamic>>{};
+    for (final key in _logBox.keys) {
+      logs[key] = await loadLog(key);
     }
     return logs;
   }
 
   Future<void> clearLog(String logId) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('${logPrefix}_$logId');
-    await prefs.remove('${namePrefix}_$logId');
-    await prefs.remove('${accelPrefix}_$logId');
-    _logs.remove(logId);
+    await _logBox.delete(logId);
+    await _nameBox.delete(logId);
+    await _accelBox.delete(logId);
   }
 
   Future<void> clearAllLogs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final keysToRemove =
-        prefs
-            .getKeys()
-            .where(
-              (k) =>
-                  k.startsWith('${logPrefix}_') ||
-                  k.startsWith('${namePrefix}_') ||
-                  k.startsWith('${accelPrefix}_'),
-            )
-            .toList();
-    for (final key in keysToRemove) {
-      await prefs.remove(key);
-    }
-    _logs.clear();
+    await _logBox.clear();
+    await _nameBox.clear();
+    await _accelBox.clear();
   }
 
   Future<void> saveLogName(String logId, String name) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('${namePrefix}_$logId', name);
+    await _nameBox.put(logId, name);
   }
 
   Future<String?> getLogName(String logId) async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('${namePrefix}_$logId');
+    return _nameBox.get(logId);
   }
 
   Future<String?> exportLogsToCsv(Set<String> selectedLogs) async {

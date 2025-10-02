@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'tabs/live_tab.dart';
 import 'tabs/log_tab.dart';
 import 'data/constants.dart';
 
-void main() {
+void main() async {
+  await Hive.initFlutter();
+  await Hive.openBox<String>(logPrefix);
+  await Hive.openBox<String>(namePrefix);
+  await Hive.openBox<String>(accelPrefix);
   runApp(PandaboatApp());
 }
 

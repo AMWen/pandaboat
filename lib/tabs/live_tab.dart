@@ -340,7 +340,6 @@ class LiveTabState extends State<LiveTab> with AutomaticKeepAliveClientMixin {
       lastProcessedPosition = null;
       recordingStartTime = DateTime.now();
       currentLogId = recordingStartTime!.toIso8601String();
-      logger.startNewLog(currentLogId!);
     } else {
       flushGPSData();
       logger.saveAccel(currentLogId!, completeAccelBuffer);

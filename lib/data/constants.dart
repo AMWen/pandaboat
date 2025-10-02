@@ -18,8 +18,8 @@ class TextStyles {
   static const TextStyle dialogTitle = TextStyle(fontSize: 18, fontWeight: FontWeight.w700);
 }
 
-double defaultMaxSPM = 95;
-double defaultMaxSpeed = 16.5;
+double defaultMaxSPM = 125;
+double defaultMaxSpeed = 18;
 double defaultMaxDistance = 5;
 double defaultBaseThreshold = 0.3;
 
