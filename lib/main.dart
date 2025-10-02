@@ -70,7 +70,11 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _tabs = [
       LiveTab(onRecordingChanged: setRecording, onLogIdChanged: setCurrentLogId),
-      LogTab(isRecording: _isRecording, currentLogId: _currentLogId, pageController: _pageController),
+      LogTab(
+        isRecording: _isRecording,
+        currentLogId: _currentLogId,
+        pageController: _pageController,
+      ),
     ];
   }
 
@@ -94,7 +98,11 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       _isRecording = recording;
       // Rebuild tabs with new recording state
-      _tabs[1] = LogTab(isRecording: _isRecording, currentLogId: _currentLogId, pageController: _pageController);
+      _tabs[1] = LogTab(
+        isRecording: _isRecording,
+        currentLogId: _currentLogId,
+        pageController: _pageController,
+      );
     });
   }
 
@@ -102,7 +110,11 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       _currentLogId = logId;
       // Rebuild tabs with new log ID
-      _tabs[1] = LogTab(isRecording: _isRecording, currentLogId: _currentLogId, pageController: _pageController);
+      _tabs[1] = LogTab(
+        isRecording: _isRecording,
+        currentLogId: _currentLogId,
+        pageController: _pageController,
+      );
     });
   }
 

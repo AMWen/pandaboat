@@ -10,7 +10,12 @@ class LogTab extends StatefulWidget {
   final String? currentLogId;
   final PageController pageController;
 
-  const LogTab({super.key, this.isRecording = false, this.currentLogId, required this.pageController});
+  const LogTab({
+    super.key,
+    this.isRecording = false,
+    this.currentLogId,
+    required this.pageController,
+  });
 
   @override
   LogTabState createState() => LogTabState();
@@ -20,6 +25,8 @@ class LogTabState extends State<LogTab> {
   final logger = LocationLogger();
   Map<String, Map<String, dynamic>> logs = {};
   Set<String> selectedLogs = {};
+  String searchQuery = '';
+  final TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
@@ -161,19 +168,43 @@ class LogTabState extends State<LogTab> {
 
   void toggleSelectAll() {
     setState(() {
-      final allLogIds = logs.entries.map((entry) => entry.key).toSet();
-      final areAllSelected = allLogIds.every((id) => selectedLogs.contains(id));
+      final filteredLogIds = _getFilteredLogs().map((entry) => entry.key).toSet();
+      final areAllSelected = filteredLogIds.every((id) => selectedLogs.contains(id));
 
       if (areAllSelected) {
-        selectedLogs.clear();
+        selectedLogs.removeAll(filteredLogIds);
       } else {
-        selectedLogs = {...allLogIds}; // Select all
+        selectedLogs.addAll(filteredLogIds); // Select all filtered
       }
     });
   }
 
+  List<MapEntry<String, Map<String, dynamic>>> _getFilteredLogs() {
+    if (searchQuery.isEmpty) {
+      return logs.entries.toList();
+    }
+
+    return logs.entries.where((entry) {
+      final logId = entry.key;
+      final logInfo = entry.value;
+      final logName = (logInfo[FieldNames.name] as String?) ?? '';
+
+      final queryLower = searchQuery.toLowerCase();
+      return logName.toLowerCase().contains(queryLower) ||
+          formatLogId(logId).toLowerCase().contains(queryLower);
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final filteredLogs = _getFilteredLogs();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Past Logs"),
@@ -201,131 +232,189 @@ class LogTabState extends State<LogTab> {
                       },
             ),
           ),
-          SizedBox(
-            width: 12,
-          ),
+          SizedBox(width: 12),
         ],
       ),
       body:
           logs.isEmpty
               ? const Center(child: Text('No logs found.'))
-              : ListView(
-                children:
-                // "Select All" checkbox row
-                [
-                  ListTile(
-                    key: ValueKey('selectAll'),
-                    minTileHeight: 10,
-                    contentPadding: EdgeInsets.only(top: 8),
-                    title: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        GestureDetector(
-                          onTap: toggleSelectAll,
-                          child: SizedBox(
-                            height: 24,
-                            width: 50,
-                            child: Row(
-                              children: [
-                                Checkbox(
-                                  value: logs.entries.every(
-                                    (entry) => selectedLogs.contains(entry.key),
-                                  ),
-                                  onChanged: (bool? value) {
-                                    toggleSelectAll();
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 150, child: Text('Date', style: TextStyles.labelText)),
-                        SizedBox(width: 4),
-                        SizedBox(width: 75, child: Text('Duration', style: TextStyles.labelText)),
-                        SizedBox(width: 4),
-                        SizedBox(width: 75, child: Text('Distance', style: TextStyles.labelText)),
-                        SizedBox(width: 4),
-                      ],
-                    ),
-                  ),
-                  ...logs.entries.map((entry) {
-                    final logId = entry.key;
-                    final logInfo = entry.value;
-                    final gpsEntries = logInfo[FieldNames.entries] as List<GpsData>;
-                    final logName = logInfo[FieldNames.name] as String?;
-
-                    return GestureDetector(
-                      onTap: () => openLog(logId),
-                      child: ListTile(
-                        minTileHeight: 10,
-                        contentPadding: EdgeInsets.zero,
-                        title: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  if (selectedLogs.contains(logId)) {
-                                    selectedLogs.remove(logId);
-                                  } else {
-                                    selectedLogs.add(logId);
-                                  }
-                                });
-                              },
-                              child: SizedBox(
-                                height: 24,
-                                width: 50,
-                                child: Checkbox(
-                                  value: selectedLogs.contains(logId), // If item is selected
-                                  onChanged: (bool? value) {
+              : Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      controller: searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search by name or date...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon:
+                            searchQuery.isNotEmpty
+                                ? IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  onPressed: () {
                                     setState(() {
-                                      if (value == true) {
-                                        selectedLogs.add(logId);
-                                      } else {
-                                        selectedLogs.remove(logId);
-                                      }
+                                      searchController.clear();
+                                      searchQuery = '';
                                     });
                                   },
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 150,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(formatLogId(logId), style: TextStyles.normalText),
-                                  if (logName != null && logName.trim().isNotEmpty)
-                                    Text(logName, style: Theme.of(context).textTheme.bodySmall),
-                                ],
-                              ),
-                            ),
-                            SizedBox(width: 4),
-                            SizedBox(
-                              width: 75,
-                              child: Text(
-                                _formatDuration(gpsEntries.isNotEmpty ? gpsEntries.last.t : null),
-                                style: TextStyles.normalText,
-                              ),
-                            ),
-                            SizedBox(width: 4),
-                            SizedBox(
-                              width: 75,
-                              child: Text(
-                                _formatDistance(
-                                  gpsEntries.isNotEmpty ? gpsEntries.last.distance : null,
-                                ),
-                                style: TextStyles.normalText,
-                              ),
-                            ),
-                            SizedBox(width: 4),
-                          ],
-                        ),
+                                )
+                                : null,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                    );
-                  }),
+                      onChanged: (value) {
+                        setState(() {
+                          searchQuery = value;
+                        });
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child:
+                        filteredLogs.isEmpty
+                            ? const Center(child: Text('No matching logs found.'))
+                            : ListView(
+                              children:
+                              // "Select All" checkbox row
+                              [
+                                ListTile(
+                                  key: ValueKey('selectAll'),
+                                  minTileHeight: 10,
+                                  contentPadding: EdgeInsets.only(top: 8),
+                                  title: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      GestureDetector(
+                                        onTap: toggleSelectAll,
+                                        child: SizedBox(
+                                          height: 24,
+                                          width: 50,
+                                          child: Row(
+                                            children: [
+                                              Checkbox(
+                                                value:
+                                                    filteredLogs.isNotEmpty &&
+                                                    filteredLogs.every(
+                                                      (entry) => selectedLogs.contains(entry.key),
+                                                    ),
+                                                onChanged: (bool? value) {
+                                                  toggleSelectAll();
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 150,
+                                        child: Text('Date', style: TextStyles.labelText),
+                                      ),
+                                      SizedBox(width: 4),
+                                      SizedBox(
+                                        width: 75,
+                                        child: Text('Duration', style: TextStyles.labelText),
+                                      ),
+                                      SizedBox(width: 4),
+                                      SizedBox(
+                                        width: 75,
+                                        child: Text('Distance', style: TextStyles.labelText),
+                                      ),
+                                      SizedBox(width: 4),
+                                    ],
+                                  ),
+                                ),
+                                ...filteredLogs.map((entry) {
+                                  final logId = entry.key;
+                                  final logInfo = entry.value;
+                                  final gpsEntries = logInfo[FieldNames.entries] as List<GpsData>;
+                                  final logName = logInfo[FieldNames.name] as String?;
+
+                                  return GestureDetector(
+                                    onTap: () => openLog(logId),
+                                    child: ListTile(
+                                      minTileHeight: 10,
+                                      contentPadding: EdgeInsets.zero,
+                                      title: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                if (selectedLogs.contains(logId)) {
+                                                  selectedLogs.remove(logId);
+                                                } else {
+                                                  selectedLogs.add(logId);
+                                                }
+                                              });
+                                            },
+                                            child: SizedBox(
+                                              height: 24,
+                                              width: 50,
+                                              child: Checkbox(
+                                                value: selectedLogs.contains(
+                                                  logId,
+                                                ), // If item is selected
+                                                onChanged: (bool? value) {
+                                                  setState(() {
+                                                    if (value == true) {
+                                                      selectedLogs.add(logId);
+                                                    } else {
+                                                      selectedLogs.remove(logId);
+                                                    }
+                                                  });
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            width: 150,
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  formatLogId(logId),
+                                                  style: TextStyles.normalText,
+                                                ),
+                                                if (logName != null && logName.trim().isNotEmpty)
+                                                  Text(
+                                                    logName,
+                                                    style: Theme.of(context).textTheme.bodySmall,
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                          SizedBox(width: 4),
+                                          SizedBox(
+                                            width: 75,
+                                            child: Text(
+                                              _formatDuration(
+                                                gpsEntries.isNotEmpty ? gpsEntries.last.t : null,
+                                              ),
+                                              style: TextStyles.normalText,
+                                            ),
+                                          ),
+                                          SizedBox(width: 4),
+                                          SizedBox(
+                                            width: 75,
+                                            child: Text(
+                                              _formatDistance(
+                                                gpsEntries.isNotEmpty
+                                                    ? gpsEntries.last.distance
+                                                    : null,
+                                              ),
+                                              style: TextStyles.normalText,
+                                            ),
+                                          ),
+                                          SizedBox(width: 4),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
+                  ),
                 ],
               ),
     );
