@@ -201,6 +201,7 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
       },
       child: DefaultTabController(
         length: tabsList.length,
+        initialIndex: 1,
         child: Scaffold(
           appBar: AppBar(
             toolbarHeight: kToolbarHeight * 0.75,

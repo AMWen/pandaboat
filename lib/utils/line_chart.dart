@@ -166,6 +166,11 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
 
   @override
   Widget build(BuildContext context) {
+    // Handle empty data
+    if (widget.xData.isEmpty || widget.yData.isEmpty) {
+      return const Center(child: Text('No data to display'));
+    }
+
     final adjustedXData =
         _xOffset != null ? widget.xData.map((x) => x - _xOffset!).toList() : widget.xData;
     final adjustedYData =
@@ -174,14 +179,14 @@ class _InteractiveLineChartState extends State<InteractiveLineChart> {
         _y2Offset != null ? widget.yData2?.map((y2) => y2 - _y2Offset!).toList() : widget.yData2;
 
     final double minX = _minXOverride ?? 0;
-    final double maxX = _maxXOverride ?? adjustedXData.reduce(max);
+    final double maxX = _maxXOverride ?? (adjustedXData.isEmpty ? 0 : adjustedXData.reduce(max));
 
     final double minY = _minYOverride ?? 0;
-    final double maxY = _maxYOverride ?? adjustedYData.reduce(max);
+    final double maxY = _maxYOverride ?? (adjustedYData.isEmpty ? 0 : adjustedYData.reduce(max));
 
     final double minY2 = _minY2Override ?? 0;
     final double maxY2 =
-        _maxY2Override ?? (adjustedY2Data?.reduce(max) ?? 0) * 1.4; // scale so graphs don't overlap
+        _maxY2Override ?? ((adjustedY2Data == null || adjustedY2Data.isEmpty) ? 0 : adjustedY2Data.reduce(max)) * 1.4; // scale so graphs don't overlap
 
     final spots = List.generate(
       adjustedXData.length,

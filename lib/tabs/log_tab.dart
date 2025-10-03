@@ -27,16 +27,13 @@ class LogTabState extends State<LogTab> {
   Set<String> selectedLogs = {};
   String searchQuery = '';
   final TextEditingController searchController = TextEditingController();
+  bool _hasNavigatedToLiveLog = false;
 
   @override
   void initState() {
     super.initState();
-    // If recording, go directly to visualization screen
-    if (widget.isRecording && widget.currentLogId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        openLiveLog(widget.currentLogId!);
-      });
-    } else {
+    // Only load logs if not recording
+    if (!widget.isRecording) {
       loadLogs();
     }
   }
@@ -44,9 +41,13 @@ class LogTabState extends State<LogTab> {
   @override
   void didUpdateWidget(LogTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // When recording starts, open live log
-    if (widget.isRecording && widget.currentLogId != null && !oldWidget.isRecording) {
-      openLiveLog(widget.currentLogId!);
+    // Reset navigation flag when recording state changes
+    if (widget.isRecording != oldWidget.isRecording) {
+      _hasNavigatedToLiveLog = false;
+    }
+    // Reload logs when recording stops
+    if (!widget.isRecording && oldWidget.isRecording) {
+      loadLogs();
     }
   }
 
@@ -203,6 +204,19 @@ class LogTabState extends State<LogTab> {
 
   @override
   Widget build(BuildContext context) {
+    // If recording, navigate to live log visualization once
+    if (widget.isRecording && widget.currentLogId != null && !_hasNavigatedToLiveLog) {
+      _hasNavigatedToLiveLog = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          openLiveLog(widget.currentLogId!);
+        }
+      });
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final filteredLogs = _getFilteredLogs();
 
     return Scaffold(

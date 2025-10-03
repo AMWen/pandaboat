@@ -62,6 +62,7 @@ class _MainScreenState extends State<MainScreen> {
   final _pageController = PageController();
   bool _isRecording = false;
   String? _currentLogId;
+  int _logTabRebuildKey = 0;
 
   late List<Widget> _tabs;
 
@@ -71,6 +72,7 @@ class _MainScreenState extends State<MainScreen> {
     _tabs = [
       LiveTab(onRecordingChanged: setRecording, onLogIdChanged: setCurrentLogId),
       LogTab(
+        key: ValueKey('log_tab_$_logTabRebuildKey'),
         isRecording: _isRecording,
         currentLogId: _currentLogId,
         pageController: _pageController,
@@ -97,24 +99,33 @@ class _MainScreenState extends State<MainScreen> {
   void setRecording(bool recording) {
     setState(() {
       _isRecording = recording;
-      // Rebuild tabs with new recording state
-      _tabs[1] = LogTab(
-        isRecording: _isRecording,
-        currentLogId: _currentLogId,
-        pageController: _pageController,
-      );
+      _logTabRebuildKey++; // Increment to force complete rebuild
+      // Rebuild entire tabs list to ensure PageView detects the change
+      _tabs = [
+        LiveTab(onRecordingChanged: setRecording, onLogIdChanged: setCurrentLogId),
+        LogTab(
+          key: ValueKey('log_tab_$_logTabRebuildKey'),
+          isRecording: _isRecording,
+          currentLogId: _currentLogId,
+          pageController: _pageController,
+        ),
+      ];
     });
   }
 
   void setCurrentLogId(String? logId) {
     setState(() {
       _currentLogId = logId;
-      // Rebuild tabs with new log ID
-      _tabs[1] = LogTab(
-        isRecording: _isRecording,
-        currentLogId: _currentLogId,
-        pageController: _pageController,
-      );
+      // Rebuild entire tabs list to ensure PageView detects the change
+      _tabs = [
+        LiveTab(onRecordingChanged: setRecording, onLogIdChanged: setCurrentLogId),
+        LogTab(
+          key: ValueKey('log_tab_$_logTabRebuildKey'),
+          isRecording: _isRecording,
+          currentLogId: _currentLogId,
+          pageController: _pageController,
+        ),
+      ];
     });
   }
 
