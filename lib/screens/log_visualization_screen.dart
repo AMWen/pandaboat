@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -44,6 +45,9 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
   double? minDistance;
   double? maxDistance;
 
+  // Auto-refresh for live recording
+  Timer? _autoRefreshTimer;
+
   @override
   void initState() {
     super.initState();
@@ -54,7 +58,32 @@ class LogVisualizationScreenState extends State<LogVisualizationScreen> {
       logId = logIds[currentIndex];
     });
     _loadLogName();
-    super.initState();
+
+    // Start auto-refresh for live recording
+    if (widget.isLiveRecording) {
+      _autoRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+        _refreshLiveData();
+      });
+    }
+  }
+
+  Future<void> _refreshLiveData() async {
+    if (!widget.isLiveRecording || !mounted) return;
+
+    final loaded = await logger.loadLog(logId);
+    final newGpsData = loaded[FieldNames.entries] as List<GpsData>? ?? [];
+
+    if (mounted) {
+      setState(() {
+        gpsData = newGpsData;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> loadLog(int index) async {
